@@ -1,0 +1,29 @@
+{
+    "name": "sorbing/laravel-bootstrap-bread",
+    "description": "Laravel 5.6 BREAD/CRUD resources manager with Bootstrap 4 markup",
+    "keywords": ["laravel 5", "bootstrap 4", "bread", "crud", "rest", "scaffold", "resource", "manager", "admin"],
+    "authors": [
+        {
+            "name": "Stanislav Butsenko",
+            "email": "svbutsenko@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0",
+        "illuminate/contracts": "5.5.*|5.6.*",
+        "illuminate/support": "5.5.*|5.6.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sorbing\\Bread\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Sorbing\\Bread\\BreadServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev"
+}
