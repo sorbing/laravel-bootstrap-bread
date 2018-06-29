@@ -16,6 +16,11 @@ trait BreadControllerTrait
         return $this->breadLayout;
     }
 
+    protected function breadTitle()
+    {
+        return ucfirst($this->breadTable());
+    }
+
     protected function breadRouteNamePrefix()
     {
         if (!empty($this->breadRouteNamePrefix)) {
@@ -86,14 +91,18 @@ trait BreadControllerTrait
 
     protected function breadActionsBrowse()
     {
-        return [];
+        return [
+            /*'Action Name' => function($item) {
+                return route('some.route.name', $item->id);
+            }*/
+        ];
     }
 
     /** Browse a resources list */
     public function index()
     {
         $data = [
-            'title' => ucfirst($this->breadTable()),
+            'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
             'columns' => $this->breadColumnsBrowse(),
