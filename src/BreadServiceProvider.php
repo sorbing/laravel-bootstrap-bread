@@ -15,7 +15,6 @@ class BreadServiceProvider extends ServiceProvider
     public function boot()
     {
         //$identity = $this->getPackageIdentity();
-
         $this->loadViewsFrom(__DIR__.'/views', 'bread');
     }
 
@@ -26,8 +25,7 @@ class BreadServiceProvider extends ServiceProvider
 
     public function register()
     {
-        $this->app->singleton('bread', function ($app) {
-            //return new \Sorbing\PromUaImporter\Services\PromUaImporter();
+        $this->app->singleton('bread', function () {
             return ['BREAD'];
         });
     }

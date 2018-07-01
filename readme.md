@@ -7,3 +7,10 @@
 
 @todo Write a example usage.
 
+
+### Use
+
+    Route::resource('users', '\Sorbing\Bread\Controllers\BreadController');
+    
+
+
