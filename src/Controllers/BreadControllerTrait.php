@@ -45,6 +45,25 @@ trait BreadControllerTrait
         return $this->breadQuery();
     }
 
+    protected function breadQueryBrowseFiltered(\Illuminate\Database\Eloquent\Builder $query)
+    {
+        if ($order = request()->input('order')) {
+            $direction = strpos($order, '-') === false ? 'asc' : 'desc';
+            $query->orderBy(trim($order, '-'), $direction);
+        }
+
+        foreach (request()->all() as $key => $val) if ($key != 'order' && preg_match('/^[a-z_]+$/', $key)) {
+            $operation = '=';
+            $value = $val;
+            if (preg_match('/^([=<>]+)(.+)$/', $val, $match)) {
+                $operation = $match[1];
+                $value = $match[2];
+            }
+
+            $query->where($key, $operation, $value);
+        }
+    }
+
     protected function breadQueryForm()
     {
         return $this->breadQuery();
@@ -54,6 +73,8 @@ trait BreadControllerTrait
     {
         $columns = !empty($this->breadColumns) ? $this->breadColumns : \Schema::getColumnListing($this->breadTable());
 
+        $columns = array_flip($columns);
+
         return $columns;
     }
 
@@ -62,31 +83,9 @@ trait BreadControllerTrait
         return $this->breadColumns();
     }
 
-    protected function breadColumnsCreate()
+    protected function breadColumnsForm()
     {
-        return array_diff($this->breadColumns(), ['id', 'created_at', 'updated_at']);
-    }
-
-    protected function breadTransformersBrowse()
-    {
-        return [
-            'field_url' => 'link',
-            'entity.img' => 'img',
-        ];
-    }
-
-    protected function breadColumnsSettings()
-    {
-        return [
-            'some_column_name' => [
-                'type' => 'select',
-                'options' => function($item = null) {
-                    return [
-                        ['id' => '', 'name' => '']
-                    ];
-                }
-            ]
-        ];
+        return array_diff_key($this->breadColumns(), array_flip(['id', 'created_at', 'updated_at']));
     }
 
     protected function breadActionsBrowse()
@@ -101,16 +100,21 @@ trait BreadControllerTrait
     /** Browse a resources list */
     public function index()
     {
+        $query = $this->breadQueryBrowse();
+        $this->breadQueryBrowseFiltered($query);
+        $collection = $query->get();
+
         $data = [
             'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
             'columns' => $this->breadColumnsBrowse(),
-            'transformers' => $this->breadTransformersBrowse(),
             'actions' => $this->breadActionsBrowse(),
-            'collection' => $this->breadQueryBrowse()->get(),
+            'query' => $query,
+            'collection' => $collection,
         ];
 
+        // @see sorbing/laravel-bootstrap-bread/src/views/browse.blade.php
         return view('bread::browse', $data);
     }
 
@@ -118,9 +122,10 @@ trait BreadControllerTrait
     public function create()
     {
         $data = [
+            'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
-            'columns' => $this->breadColumnsCreate(),
+            'columns' => $this->breadColumnsForm(),
             'item' => []
         ];
 
@@ -137,20 +142,18 @@ trait BreadControllerTrait
     }
 
     /** Display the specified resource */
-    public function show()
-    {
-        //
-    }
+    public function show() {}
 
     /** Form for editing the resource */
     public function edit(int $id)
     {
-        $item = $this->breadQuery()->where('id', $id)->first();
+        $item = $this->breadQueryForm()->where('id', $id)->first();
 
         $data = [
+            'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
-            'columns' => $this->breadColumns(),
+            'columns' => $this->breadColumnsForm(),
             'id' => $id,
             'item' => $item
         ];
@@ -170,6 +173,8 @@ trait BreadControllerTrait
     /** Remove the resource from storage */
     public function destroy(int $id)
     {
-        //
+        $this->breadQuery()->delete($id);
+        return redirect()->back()->with('success', "Resource #$id deleted");
+        //return redirect()->route($this->breadRouteNamePrefix().'.index')->with('success', "Resource #$id deleted");
     }
 }

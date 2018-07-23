@@ -3,7 +3,6 @@
 namespace Sorbing\Bread;
 
 use Illuminate\Support\ServiceProvider;
-//use Sorbing\Bread\...;
 
 class BreadServiceProvider extends ServiceProvider
 {
@@ -16,6 +15,11 @@ class BreadServiceProvider extends ServiceProvider
     {
         //$identity = $this->getPackageIdentity();
         $this->loadViewsFrom(__DIR__.'/views', 'bread');
+
+        // Register a Commands
+        if ($this->app->runningInConsole()) {
+            $this->commands([Commands\BreadControllerCommand::class]);
+        }
     }
 
     public function provides()
@@ -25,8 +29,6 @@ class BreadServiceProvider extends ServiceProvider
 
     public function register()
     {
-        $this->app->singleton('bread', function () {
-            return ['BREAD'];
-        });
+        $this->app->singleton('bread', \Sorbing\Bread\Services\BreadService::class);
     }
 }

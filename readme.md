@@ -12,5 +12,7 @@
 
     Route::resource('users', '\Sorbing\Bread\Controllers\BreadController');
     
+    php artisan bread:controller supplies "Admin\SuppliesController"
+    
 
 
