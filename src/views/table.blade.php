@@ -14,7 +14,7 @@
                             @if (strpos($key, '.'))
                                 {{ $header }}
                             @else
-                                <a href="{{ route("$prefix.index") }}?order={{ $order }}">{{ $header }}</a>
+                                <a href="{{ route("$prefix.index") }}?order={{ $order }}&{{ query_except('order') }}">{{ $header }}</a>
                             @endif
                         </th>
                     @endforeach
