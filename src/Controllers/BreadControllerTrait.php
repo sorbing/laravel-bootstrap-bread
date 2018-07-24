@@ -45,7 +45,10 @@ trait BreadControllerTrait
         return $this->breadQuery();
     }
 
-    protected function breadQueryBrowseFiltered(\Illuminate\Database\Eloquent\Builder $query)
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder $query
+     */
+    protected function breadQueryBrowseFiltered($query)
     {
         if ($order = request()->input('order')) {
             $direction = strpos($order, '-') === false ? 'asc' : 'desc';

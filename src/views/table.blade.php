@@ -63,10 +63,13 @@
                             </td>
                         @elseif (preg_match('/link:(.+)/', $transformer, $match))
                             <td>{!! link_to($match[1], $value) !!}</td>
+                        @elseif (preg_match('/date:(.+)/', $transformer, $match))
+                            {{--<td>{{ $value }}</td>--}}
+                            <td>{{ date($match[1], strtotime($value)) }}</td>
                         @elseif($transformer === 'img')
                             <td>{!! Html::image($value, '', ['height' => 30]) !!}</td>
                         @elseif(is_callable($transformer))
-                            <td>{!! $transformer($value) !!}</td>
+                            <td>{!! $transformer($value, $item) !!}</td>
                         @endif
                     @else
                         <td>{!! $value !!}</td>
