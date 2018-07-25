@@ -1,40 +1,48 @@
 @if ($collection->count())
-    <table class="table">
+    @push('bread_assets')
+        <style>
+            .table.bread-table th, .table.bread-table td { padding: 0.5rem; }
+            .bread-table .bread-actions { white-space: nowrap; }
+            .bread-table .bread-actions .btn { white-space: nowrap; padding: 5px 10px; margin: 0 0 0 2px; }
+        </style>
+    @endpush
+
+    <table class="table bread-table">
         <thead>
-                <tr>
-                    @foreach($columns as $key => $column)
-                        <?php if (data_get($column, 'hide')) { continue; } ?>
-                        <?php $order = (request('order') == $key) ? "-$key" : $key; ?>
-                        <?php $header = !empty($column['name']) ? $column['name'] : ucwords(str_replace(['_', '.'], ' ', $key)); ?>
-                        <?php
-                            $width = data_get($column, 'width', ($key == 'id') ? 50 : '');
-                            $colStyle = $width ? "style=\"width: {$width}px;\"" : '';
-                        ?>
-                        <th {!! $colStyle or '' !!}>
-                            @if (strpos($key, '.'))
-                                {{ $header }}
-                            @else
-                                <a href="{{ route("$prefix.index") }}?order={{ $order }}&{{ query_except('order') }}">{{ $header }}</a>
-                            @endif
-                        </th>
-                    @endforeach
-                    <th>Actions</th>
-                </tr>
-                <tr>
-                    @foreach($columns as $key => $column)
-                        <?php if (data_get($column, 'hide')) { continue; } ?>
-                        <td style="margin: 0; padding: 0;">
-                            <form name="filter" action="{{ route("$prefix.index") }}" method="get">
-                                <input type="hidden" name="order" value="{{ request('order') }}"/>
-                                <?php $disabled = strpos($key, '.') ? 'disabled' : ''; ?>
-                                <input type="text" class="form-control form-control-sm" {{ $disabled }} name="{{ $key }}" value="{{ request($key) }}" autocomplete="off"/>
-                            </form>
-                        </td>
-                    @endforeach
+            <tr>
+                @foreach($columns as $key => $column)
+                    <?php if (data_get($column, 'hide')) { continue; } ?>
+                    <?php $order = (request('order') == "-$key") ? $key : "-$key"; ?>
+                    <?php $header = !empty($column['name']) ? $column['name'] : ucwords(str_replace(['_', '.'], ' ', $key)); ?>
+                    <?php
+                        $width = data_get($column, 'width', ($key == 'id') ? 50 : '');
+                        $colStyle = $width ? "style=\"width: {$width}px;\"" : '';
+                    ?>
+                    <th {!! $colStyle or '' !!}>
+                        @if (strpos($key, '.'))
+                            {{ $header }}
+                        @else
+                            <a href="{{ route("$prefix.index") }}?order={{ $order }}&{{ query_except('order') }}">{{ $header }}</a>
+                        @endif
+                    </th>
+                @endforeach
+                <th>Actions</th>
+            </tr>
+            <tr>
+                @foreach($columns as $key => $column)
+                    <?php if (data_get($column, 'hide')) { continue; } ?>
                     <td style="margin: 0; padding: 0;">
-                        {{--<input type="submit" class="btn btn-sm btn-primary" style="margin: 0; padding: 6px 12px;" value="Фильтр"/>--}}
+                        <form name="filter" action="{{ route("$prefix.index") }}" method="get">
+                            <input type="hidden" name="order" value="{{ request('order') }}"/>
+                            <?php $disabled = strpos($key, '.') ? 'disabled' : ''; ?>
+                            <input type="text" class="form-control form-control-sm" {{ $disabled }} name="{{ $key }}" value="{{ request($key) }}" autocomplete="off"/>
+                        </form>
                     </td>
-                </tr>
+                @endforeach
+                <td style="margin: 0; padding: 0;">
+                    {{--<input type="submit" class="btn btn-sm btn-primary" style="margin: 0; padding: 6px 12px;" value="Фильтр"/>--}}
+                </td>
+            </tr>
         </thead>
         <tbody>
         @foreach($collection as $item)
@@ -75,11 +83,11 @@
                         <td>{!! $value !!}</td>
                     @endif
                 @endforeach
-                <td>
+                <td class="bread-actions">
                     <a href="{{ route("$prefix.edit", $id) }}" class="btn btn-sm btn-outline-primary">✎</a>
 
                     {{ Form::open(['route' => ["$prefix.destroy", $id], 'method' => 'delete', 'class' => 'd-inline']) }}
-                    <button type="submit" class="btn btn-sm btn-outline-danger" style="margin-left: 0">✕</button>
+                    <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
                     {{ Form::close() }}
 
                     @if (!empty($actions) && is_array($actions))

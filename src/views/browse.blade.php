@@ -15,7 +15,7 @@
                         <a href="{{ route("$prefix.create") }}" class="btn btn-primary">{{ __('New') }}</a>
 
                         <div class="dropdown float-md-right">
-                            <button class="btn btn-warning dropdown-toggle" type="button" id="dropdownMassToggler" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMassToggler" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Mass actions
                             </button>
                             <div class="dropdown-menu" aria-labelledby="dropdownMassToggler">
@@ -23,28 +23,6 @@
                             </div>
                         </div>
                     </div>
-
-                    {{--<div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Dropdown button
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                            <a class="dropdown-item" href="#">Action</a>
-                            <a class="dropdown-item" href="#">Another action</a>
-                            <a class="dropdown-item" href="#">Something else here</a>
-                        </div>
-                    </div>
-
-                    <div class="btn-group dropdown-wrap" tabindex__="0">
-                        <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Basic dropdown</button>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item" href="#">Action</a>
-                            <a class="dropdown-item" href="#">Another action</a>
-                            <a class="dropdown-item" href="#">Something else here</a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="#">Separated link</a>
-                        </div>
-                    </div>--}}
                 </div>
 
                 @push('bread_assets')
@@ -59,14 +37,7 @@
 
                     <style>
                         .dropdown-toggle:focus ~ .dropdown-menu { display: block; }
-                        /*.dropdown-wrap:focus { background: #e7e7e7; } /*need attribute `tabindex="0"`*/
                     </style>
-
-                    {{--
-                        .dropdown        +> .show
-                        .dropdown-toggle +> aria-expanded=true
-                        .dropdown-menu   +> .show
-                    --}}
                 @endpush
 
                 @include('bread::table', ['collection' => $collection, 'columns' => $columns, 'prefix' => $prefix])
