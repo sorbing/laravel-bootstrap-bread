@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 
 trait BreadControllerTrait
 {
+    protected $breadPerPage = 20;
+
     protected function breadTable()
     {
         return $this->breadTable;
@@ -46,24 +48,31 @@ trait BreadControllerTrait
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder $query
+     * @param \Eloquent $query
      */
     protected function breadQueryBrowseFiltered($query)
     {
+        foreach (request()->all() as $key => $val) if (!in_array($key, ['page', 'order']) && preg_match('/^[a-z_]+$/', $key) && !empty($val)) {
+            if (str_contains($val, ['null'])) {
+                if (str_contains($val, ['not', '!'])) {
+                    $query->whereNotNull($key);
+                } else {
+                    $query->whereNull($key);
+                }
+            } else {
+                $operation = '=';
+                if (preg_match('/^([=<>]+)(.+)$/', $val, $match)) {
+                    $operation = $match[1];
+                    $val = $match[2];
+                }
+
+                $query->where($key, $operation, $val);
+            }
+        }
+
         if ($order = request()->input('order')) {
             $direction = strpos($order, '-') === false ? 'asc' : 'desc';
             $query->orderBy(trim($order, '-'), $direction);
-        }
-
-        foreach (request()->all() as $key => $val) if ($key != 'order' && preg_match('/^[a-z_]+$/', $key)) {
-            $operation = '=';
-            $value = $val;
-            if (preg_match('/^([=<>]+)(.+)$/', $val, $match)) {
-                $operation = $match[1];
-                $value = $match[2];
-            }
-
-            $query->where($key, $operation, $value);
         }
     }
 
@@ -94,9 +103,16 @@ trait BreadControllerTrait
     protected function breadActionsBrowse()
     {
         return [
-            /*'Action Name' => function($item) {
+            /*'Button name' => function($item) {
                 return route('some.route.name', $item->id);
             }*/
+        ];
+    }
+
+    protected function breadMassActionsBrowse()
+    {
+        return [
+            // [...]
         ];
     }
 
@@ -105,19 +121,19 @@ trait BreadControllerTrait
     {
         $query = $this->breadQueryBrowse();
         $this->breadQueryBrowseFiltered($query);
-        $collection = $query->get();
+        $paginator = $query->paginate($this->breadPerPage);
+        // @see http://qaru.site/questions/414474/limit-amount-of-links-shown-with-laravel-pagination
 
         $data = [
+            'paginator' => $paginator,
             'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
             'columns' => $this->breadColumnsBrowse(),
             'actions' => $this->breadActionsBrowse(),
-            'query' => $query,
-            'collection' => $collection,
+            'mass_actions' => $this->breadMassActionsBrowse(),
         ];
 
-        // @see sorbing/laravel-bootstrap-bread/src/views/browse.blade.php
         return view('bread::browse', $data);
     }
 
@@ -174,10 +190,14 @@ trait BreadControllerTrait
     }
 
     /** Remove the resource from storage */
-    public function destroy(int $id)
+    public function destroy(int $id = 0)
     {
-        $this->breadQuery()->delete($id);
-        return redirect()->back()->with('success', "Resource #$id deleted");
-        //return redirect()->route($this->breadRouteNamePrefix().'.index')->with('success', "Resource #$id deleted");
+        if ($id > 0) {
+            $deletedCount = $this->breadQuery()->delete($id);
+        } else if ($ids = array_wrap(request('id'))) {
+            $deletedCount = $this->breadQuery()->whereIn('id', $ids)->delete();
+        }
+
+        return back()->with('success', "Deleted $deletedCount items.");
     }
 }

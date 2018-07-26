@@ -1,46 +1,54 @@
 @extends($layout)
 
 @section('content')
-    <div class="container-fluid">
+    <div class="container-fluid container-bread-browse">
         <div class="row">
             <div class="col-sm-12 mx-auto">
                 <div class="row">
                     <div class="col-sm-8">
                         <h1 class="mb-0 mt-2">
                             {{ $title or ucwords(str_replace('.', ' ', $prefix)) }}
-                            ({{count($collection)}})
+                            ({{ $paginator->total() }})
                         </h1>
                     </div>
                     <div class="col-sm-4 text-right">
-                        <a href="{{ route("$prefix.create") }}" class="btn btn-primary">{{ __('New') }}</a>
+                        <a href="{{ route("$prefix.create") }}" class="btn btn-primary">{{ __('Create') }}</a>
 
-                        <div class="dropdown float-md-right">
-                            <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMassToggler" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        @push('bread_assets')
+                            {{--<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">--}}
+                            {{-- 6.8Kb --}}
+                            {{--<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+                            <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+                            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>--}}
+
+                            <style>
+                                .container-bread-browse .dropdown-toggle:focus ~ .dropdown-menu { display: block; }
+                                .container-bread-browse .dropdown .dropdown-menu:hover { display: block; }
+                                /*.container-bread-browse .dropdown:focus .dropdown-menu { display: block; }*/
+                            </style>
+                        @endpush
+
+                        <div class="dropdown float-md-right breadMassActionsWrap"> {{-- tabindex="0" --}}
+                            <button class="btn btn-primary dropdown-toggle" id="breadMassActionsToggler" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Mass actions
                             </button>
-                            <div class="dropdown-menu" aria-labelledby="dropdownMassToggler">
-                                <a class="dropdown-item" href="#">Action</a>
+                            <div class="dropdown-menu" aria-labelledby="breadMassActionsToggler">
+                                @foreach($mass_actions as $action)
+                                    <div class="dropdown-item">
+                                        @if(is_array($action))
+                                            @include('bread::parts.mass_action_form', $action)
+                                        @endif
+                                    </div>
+                                @endforeach
+                                <div class="dropdown-item">
+                                    @include('bread::parts.mass_action_form', ['name' => 'Delete', 'action' => route("$prefix.destroy", 0)])
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                @push('bread_assets')
-                    {{--<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">--}}
-
-                    {{-- 0.0Kb --}}
-                    {{-- 6.8Kb --}}
-                    {{-- 0.0Kb --}}
-                    {{--<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-                    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>--}}
-
-                    <style>
-                        .dropdown-toggle:focus ~ .dropdown-menu { display: block; }
-                    </style>
-                @endpush
-
-                @include('bread::table', ['collection' => $collection, 'columns' => $columns, 'prefix' => $prefix])
+                @include('bread::table', ['paginator' => $paginator, 'columns' => $columns, 'prefix' => $prefix])
             </div>
         </div>
     </div>
