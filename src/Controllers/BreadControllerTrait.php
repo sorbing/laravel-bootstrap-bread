@@ -6,8 +6,6 @@ use Illuminate\Http\Request;
 
 trait BreadControllerTrait
 {
-    protected $breadPerPage = 20;
-
     protected function breadTable()
     {
         return $this->breadTable;
@@ -34,6 +32,14 @@ trait BreadControllerTrait
         return substr($name, 0, strrpos($name, '.'));
     }
 
+    protected function breadPerPage()
+    {
+        return isset($this->breadPerPage) ? $this->breadPerPage : 20;
+    }
+
+    /**
+     * @return \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder
+     */
     protected function breadQuery()
     {
         $table = $this->breadTable();
@@ -59,6 +65,11 @@ trait BreadControllerTrait
                 } else {
                     $query->whereNull($key);
                 }
+            } elseif (str_contains($val, ['distinct', 'unique'])) {
+                //$query->distinct();
+                //$query->addSelect("DISTINCT $key");
+            } elseif (str_contains($val, ['%', '*'])) {
+                $query->where($key, 'LIKE', str_replace('*', '%', $val));
             } else {
                 $operation = '=';
                 if (preg_match('/^([=<>]+)(.+)$/', $val, $match)) {
@@ -69,6 +80,10 @@ trait BreadControllerTrait
                 $query->where($key, $operation, $val);
             }
         }
+
+//        \DB::enableQueryLog();
+//        $query->get('name');
+//        echo "<pre>"; print_r(\DB::getQueryLog()); echo "</pre>"; exit;
 
         if ($order = request()->input('order')) {
             $direction = strpos($order, '-') === false ? 'asc' : 'desc';
@@ -103,17 +118,32 @@ trait BreadControllerTrait
     protected function breadActionsBrowse()
     {
         return [
-            /*'Button name' => function($item) {
-                return route('some.route.name', $item->id);
-            }*/
+            /*[ // @todo Возвожность указать имя в качестве ключа массива?
+                'name' => 'Button name',
+                'title' => 'Action title attribute value',
+                'action' => function($item) {
+                    return route('some.route.name', $item->id);
+                }
+            ]*/
+        ];
+    }
+
+    protected function breadPresetFiltersBrowse()
+    {
+        return [
+            'All' => ['query' => ''],
         ];
     }
 
     protected function breadMassActionsBrowse()
     {
-        return [
-            // [...]
-        ];
+        return [ /*['name' => '', 'title' => '', 'action' => ''],*/ ];
+    }
+
+    protected function breadEmptyBrowseContent()
+    {
+        $content = ""; // Or use view: $content = view('', [])->render();
+        return $content;
     }
 
     /** Browse a resources list */
@@ -121,7 +151,7 @@ trait BreadControllerTrait
     {
         $query = $this->breadQueryBrowse();
         $this->breadQueryBrowseFiltered($query);
-        $paginator = $query->paginate($this->breadPerPage);
+        $paginator = $query->paginate($this->breadPerPage());
         // @see http://qaru.site/questions/414474/limit-amount-of-links-shown-with-laravel-pagination
 
         $data = [
@@ -132,6 +162,8 @@ trait BreadControllerTrait
             'columns' => $this->breadColumnsBrowse(),
             'actions' => $this->breadActionsBrowse(),
             'mass_actions' => $this->breadMassActionsBrowse(),
+            'empty_content' => $this->breadEmptyBrowseContent(),
+            'preset_filters' => $this->breadPresetFiltersBrowse(),
         ];
 
         return view('bread::browse', $data);
@@ -154,16 +186,28 @@ trait BreadControllerTrait
     /** Store a newly created resource in storage */
     public function store()
     {
-        $data = request()->except(['id', 'created_at', 'updated_at', '_token']);
-        $this->breadQuery()->insert($data);
+        $data = request()->except(['id', 'created_at', 'updated_at', '_token', '_method', '_prev_index_url']);
 
-        return redirect()->route($this->breadRouteNamePrefix().'.index')->with('success', 'Resource stored');
+        $query = $this->breadQuery();
+        if ($query instanceof \Illuminate\Database\Query\Builder) {
+            $id = $query->insertGetId($data);
+        } else if ($query instanceof \Illuminate\Database\Eloquent\Builder) {
+            $id = $query->create($data)->id; // @note For a eloquent events works
+        }
+
+        $defaultUrl = url()->route($this->breadRouteNamePrefix().'.index');
+        $prevIndexUrl = request('_prev_index_url', $defaultUrl); // back_or()
+        return redirect($prevIndexUrl)->with('success', "Resource #$id stored.");
     }
 
     /** Display the specified resource */
     public function show() {}
 
-    /** Form for editing the resource */
+    /**
+     * Form for editing the resource
+     * @param int $id
+     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     */
     public function edit(int $id)
     {
         $item = $this->breadQueryForm()->where('id', $id)->first();
@@ -180,22 +224,56 @@ trait BreadControllerTrait
         return view('bread::form', $data);
     }
 
-    /** Update the resource in storage */
+    /**
+     * Update the resource in storage
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update(int $id)
     {
-        $data = request()->except(['id', 'created_at', 'updated_at', '_token', '_method']);
-        $this->breadQuery()->where('id', $id)->update($data);
-
-        return redirect()->route($this->breadRouteNamePrefix().'.index')->with('success', 'Resource updated');
+        return $this->breadUpdate($id);
     }
 
-    /** Remove the resource from storage */
+    /**
+     * It provides the ability to easily extend the update action
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    protected function breadUpdate(int $id)
+    {
+        $data = request()->except(['id', 'created_at', 'updated_at', '_token', '_method', '_prev_index_url']);
+
+        $query = $this->breadQuery();
+        if ($query instanceof \Illuminate\Database\Query\Builder) {
+            $int = $query->where('id', $id)->update($data);
+        } else if ($query instanceof \Illuminate\Database\Eloquent\Builder) {
+            $success = $query->find($id)->fill($data)->save(); // @note For a eloquent events works
+        }
+
+        $defaultUrl = url()->route($this->breadRouteNamePrefix().'.index');
+        $prevIndexUrl = request('_prev_index_url', $defaultUrl); // back_or()
+        return redirect($prevIndexUrl)->with('success', "Resource #$id updated.");
+    }
+
+    /**
+     * Remove the resource from storage
+     * @param int $id
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function destroy(int $id = 0)
     {
+        $deletedCount = 0;
+        $perPage = $this->breadPerPage();
+
         if ($id > 0) {
-            $deletedCount = $this->breadQuery()->delete($id);
+            $deletedCount = $this->breadQuery()->where('id', $id)->delete();
         } else if ($ids = array_wrap(request('id'))) {
-            $deletedCount = $this->breadQuery()->whereIn('id', $ids)->delete();
+            if (count($ids) && count($ids) <= $perPage) {
+                $query = $this->breadQuery()->whereIn('id', $ids);
+                if ($query->count() <= $perPage) {
+                    $deletedCount = $query->delete();
+                }
+            }
         }
 
         return back()->with('success', "Deleted $deletedCount items.");

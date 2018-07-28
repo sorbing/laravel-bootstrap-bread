@@ -8,6 +8,7 @@
 
                 <form action="{{ empty($id) ? route("$prefix.store") : route("$prefix.update", $id) }}" method="post">
                     @csrf()
+                    {{ Form::hidden('_prev_index_url', \URL::previous()) }}
 
                     @if (!empty($id))
                         {{ method_field('PATCH') }}
@@ -34,6 +35,7 @@
                                 <div class="col-sm-9">
                                     @if (!empty($columnOptions) && is_array($columnOptions) && count($columnOptions))
                                         <select class="form-control" id="{{ $fieldKey }}" name="{{ $key }}">
+                                            <option value="">Please select value</option>
                                             @foreach($columnOptions as $optionId => $optionName)
                                                 <?php $selected = (data_get($item, $key) == $optionId) ? 'selected="selected"' : ''; ?>
                                                 <option value="{{ $optionId }}" {{$selected}}>{{ $optionName }}</option>
