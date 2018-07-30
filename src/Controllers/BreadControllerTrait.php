@@ -59,13 +59,17 @@ trait BreadControllerTrait
     protected function breadQueryBrowseFiltered($query)
     {
         foreach (request()->all() as $key => $val) if (!in_array($key, ['page', 'order']) && preg_match('/^[a-z_]+$/', $key) && !empty($val)) {
-            if (str_contains($val, ['null'])) {
+            if (strpos($val, '~') === 0) {
+                $val = trim($val, '~');
+                $query->where($key, 'LIKE', "%$val%");
+            } elseif (str_contains($val, ['null'])) {
                 if (str_contains($val, ['not', '!'])) {
                     $query->whereNotNull($key);
                 } else {
                     $query->whereNull($key);
                 }
             } elseif (str_contains($val, ['distinct', 'unique'])) {
+                // @todo How to implement it?
                 //$query->distinct();
                 //$query->addSelect("DISTINCT $key");
             } elseif (str_contains($val, ['%', '*'])) {
@@ -128,16 +132,16 @@ trait BreadControllerTrait
         ];
     }
 
+    protected function breadMassActionsBrowse()
+    {
+        return [ /*['name' => '', 'title' => '', 'action' => route('admin.users.action_name')],*/ ];
+    }
+
     protected function breadPresetFiltersBrowse()
     {
         return [
             'All' => ['query' => ''],
         ];
-    }
-
-    protected function breadMassActionsBrowse()
-    {
-        return [ /*['name' => '', 'title' => '', 'action' => ''],*/ ];
     }
 
     protected function breadEmptyBrowseContent()
