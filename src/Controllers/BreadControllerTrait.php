@@ -34,7 +34,9 @@ trait BreadControllerTrait
 
     protected function breadPerPage()
     {
-        return isset($this->breadPerPage) ? $this->breadPerPage : 20;
+        $defaultPerPage = request('per_page', 20);
+        $defaultPerPage = $defaultPerPage <= 50 ? $defaultPerPage : 50;
+        return isset($this->breadPerPage) ? $this->breadPerPage : $defaultPerPage;
     }
 
     /**
@@ -58,7 +60,8 @@ trait BreadControllerTrait
      */
     protected function breadQueryBrowseFiltered($query)
     {
-        foreach (request()->all() as $key => $val) if (!in_array($key, ['page', 'order']) && preg_match('/^[a-z_]+$/', $key) && !empty($val)) {
+        $exceptFilters = ['page', 'per_page', 'order'];
+        foreach (request()->all() as $key => $val) if (!in_array($key, $exceptFilters) && preg_match('/^[a-z_]+$/', $key) && !empty($val)) {
             if (strpos($val, '~') === 0) {
                 $val = trim($val, '~');
                 $query->where($key, 'LIKE', "%$val%");
