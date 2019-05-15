@@ -55,15 +55,16 @@
     <thead>
         <tr>
             <th><input type="checkbox" class="inputToggleCheckboxes" onchange="window.toggleAllBreadIdsCheckboxes(this)" /></th>
-            @foreach($columns as $key => $column)
-                <?php if (data_get($column, 'hide')) { continue; } ?>
+            @foreach($columns as $key)
+                <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
+                <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <?php $order = (request('order') == "-$key") ? $key : "-$key"; ?>
                 <?php $header = !empty($column['name']) ? $column['name'] : ucwords(str_replace(['_', '.'], ' ', $key)); ?>
                 <?php
                     $width = data_get($column, 'width', ($key == 'id') ? 50 : '');
                     $colStyle = $width ? "style=\"width: {$width}px;\"" : '';
                 ?>
-                <th {!! $colStyle or '' !!} title="{{ data_get($column, 'title') }}">
+                <th {!! $colStyle or '' !!} title="{{ data_get($column, 'title') }}" class="text-center">
                     @if (strpos($key, '.'))
                         {{ $header }}
                     @else
@@ -71,12 +72,13 @@
                     @endif
                 </th>
             @endforeach
-            <th>Actions</th>
+            <th style="text-align: center">Actions</th>
         </tr>
         <tr>
             <td></td>
-            @foreach($columns as $key => $column)
-                <?php if (data_get($column, 'hide')) { continue; } ?>
+            @foreach($columns as $key)
+                <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
+                <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <td style="margin: 0; padding: 0;">
                     <form name="filter" action="{{ route("$prefix.index") }}" method="get">
                         <input type="hidden" name="order" value="{{ request('order') }}"/>
@@ -101,11 +103,19 @@
         <?php $id = $item->id; ?>
         <tr>
             <td class="id"><input type="checkbox" name="id[]" value="{{ $id }}" onchange="window.toggleBreadIdCheckbox(this)"/></td>
-            @foreach($columns as $key => $column)
+            @foreach($columns as $key)
+                <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
+                <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <?php
                     $value = data_get($item, $key, '');
                     $transformer = !empty($column['transformer']) ? $column['transformer'] : null;
-                    if (data_get($column, 'hide')) { continue; }
+                ?>
+
+                <?php
+                    $prepareTemplate = !empty($column['prepare']) ? $column['prepare'] : null;
+                    if ($prepareTemplate) {
+                        $value = app('bread')->renderBlade($prepareTemplate, ['key' => $key, 'id' => $id, 'value' => $value, 'column' => $column, 'item' => $item]);
+                    }
                 ?>
 
                 {{-- @todo Применить transformer, а уже после него template --}}
@@ -115,16 +125,22 @@
                     </td>
                 @elseif ($transformer)
                     @if (preg_match('/card:(.+),(.+),(.+)/', $transformer, $match))
+                        <?php
+                            $cardThumbnail = data_get($item, $match[1]);
+                            $cardThumbnail = $cardThumbnail ? app('ImageManager')->cache($cardThumbnail, 'x120') : '//placehold.jp/48x48.png';
+                            $cardName = data_get($item, $match[2], '');
+                            $cardUrl = data_get($item, $match[3], '');
+                        ?>
                         <td>
                             <div class="d-flex">
                                 <div>
-                                    <a href="{{ data_get($item, $match[3], '') }}" target="_blank">
-                                        <img src="{{ data_get($item, $match[1], '//placehold.jp/48x48.png') }}" alt="{{$match[1]}}" width="48">
+                                    <a href="{{ $cardUrl }}" target="_blank">
+                                        <img src="{{ $cardThumbnail }}" alt="{{$match[1]}}" width="48">
                                     </a>
                                 </div>
                                 <div class="align-self-stretch ml-1">
                                     {{--<a href="{{ data_get($item, $match[3], '') }}" target="_blank">🔗</a>--}}
-                                    {{ data_get($item, $match[2], '') }}
+                                    {{ $cardName }}
                                 </div>
                             </div>
                         </td>
@@ -152,7 +168,7 @@
                                     {{--{!! app('bread')->renderBlade($action['template'], ['key' => $key, 'value' => $value, 'column' => $column, 'item' => $item]) !!}--}}
                                     <a href="{{ $url }}" title="{{ data_get($action, 'title') }}" class="btn btn-sm btn-outline-primary">{{ data_get($action, 'name', 'Button') }}</a>
                                 @elseif(is_string($action))
-                                    {!! app('bread')->renderBlade($action, ['key' => $key, 'id' => $id, 'value' => $value, 'column' => $column, 'item' => $item]) !!}
+                                    {!! app('bread')->renderBlade($action, ['id' => $id, 'item' => $item]) !!}
                                 @endif
                             @endforeach
                         @endif

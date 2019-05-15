@@ -57,11 +57,13 @@ trait BreadControllerTrait
 
     /**
      * @param \Eloquent $query
+     * @return \Eloquent
      */
     protected function breadQueryBrowseFiltered($query)
     {
-        $exceptFilters = ['page', 'per_page', 'order'];
-        foreach (request()->all() as $key => $val) if (!in_array($key, $exceptFilters) && preg_match('/^[a-z_]+$/', $key) && !empty($val)) {
+        $filters = $this->breadGetCurrentBrowseFilters();
+
+        foreach ($filters as $key => $val) {
             if (strpos($val, '~') === 0) {
                 $val = trim($val, '~');
                 $query->where($key, 'LIKE', "%$val%");
@@ -79,7 +81,7 @@ trait BreadControllerTrait
                 $query->where($key, 'LIKE', str_replace('*', '%', $val));
             } else {
                 $operation = '=';
-                if (preg_match('/^([=<>]+)(.+)$/', $val, $match)) {
+                if (preg_match('/^([!=<>]+)(.+)$/', $val, $match)) {
                     $operation = $match[1];
                     $val = $match[2];
                 }
@@ -88,19 +90,26 @@ trait BreadControllerTrait
             }
         }
 
-//        \DB::enableQueryLog();
-//        $query->get('name');
-//        echo "<pre>"; print_r(\DB::getQueryLog()); echo "</pre>"; exit;
-
         if ($order = request()->input('order')) {
             $direction = strpos($order, '-') === false ? 'asc' : 'desc';
             $query->orderBy(trim($order, '-'), $direction);
         }
+
+        return $query;
     }
 
-    protected function breadQueryForm()
+    protected function breadGetCurrentBrowseFilters()
     {
-        return $this->breadQuery();
+        $exceptFilters = ['page', 'per_page', 'order'];
+
+        $filters = [];
+        foreach (request()->except($exceptFilters) as $key => $val) {
+            if (preg_match('/^[a-z][a-z_]+$/', $key) && !empty($val)) {
+                $filters[$key] = $val;
+            }
+        }
+
+        return $filters;
     }
 
     protected function breadColumns()
@@ -112,12 +121,43 @@ trait BreadControllerTrait
         return $columns;
     }
 
-    protected function breadColumnsBrowse()
+    protected function breadColumnsSettingsBrowse()
     {
         return $this->breadColumns();
     }
 
-    protected function breadColumnsForm()
+    protected function breadColumnsDefaultBrowse(): array
+    {
+        //$defaultColumns = array_keys($this->breadColumnsSettingsBrowse());
+        $defaultColumns = [];
+        foreach ($this->breadColumnsSettingsBrowse() as $key => $columnSettings) {
+            if (!data_get($columnSettings, 'hide')) {
+                $defaultColumns[] = $key;
+            }
+        }
+
+        return $defaultColumns;
+    }
+
+    protected function breadColumnsDisplayingBrowse()
+    {
+        if (!$columns = request('_columns')) {
+            return $this->breadColumnsDefaultBrowse();
+        }
+
+        if (!is_array($columns)) {
+            $columns = explode(',', $columns);
+        }
+
+        return $columns;
+    }
+
+    protected function breadQueryForm()
+    {
+        return $this->breadQuery();
+    }
+
+    protected function breadColumnsSettingsForm()
     {
         return array_diff_key($this->breadColumns(), array_flip(['id', 'created_at', 'updated_at']));
     }
@@ -137,14 +177,45 @@ trait BreadControllerTrait
 
     protected function breadMassActionsBrowse()
     {
-        return [ /*['name' => '', 'title' => '', 'action' => route('admin.users.action_name')],*/ ];
+        $defaultMassActions = $this->breadMassActionsBrowseDefault();
+        return $defaultMassActions;
+        /*return [
+            ['name' => 'Button name', 'title' => 'Hint on button', 'action' => route('admin.users.action_name')],
+        ];*/
+    }
+
+    protected function breadMassActionsBrowseDefault()
+    {
+        $prefix = $this->breadRouteNamePrefix();
+        $exportParams = array_merge(['_export' => 'csv'], request()->all());
+
+        return [
+            ['name' => 'Delete', 'action' => route("$prefix.destroy", 0), 'method' => 'DELETE'],
+            ['name' => 'Export CSV', 'action' => route("$prefix.index"), 'method' => 'GET', 'params' => $exportParams, 'attrs' => ['target' => '_blank']],
+        ];
+    }
+
+    protected function breadPresetFiltersBrowseDefault()
+    {
+        return [
+            'All' => ['query' => ''],
+            'Per 50 rows' => ['query' => 'per_page=50'],
+        ];
+    }
+
+    protected function breadPresetFiltersBrowseAdvanced()
+    {
+        return [];
     }
 
     protected function breadPresetFiltersBrowse()
     {
-        return [
-            'All' => ['query' => ''],
-        ];
+        $presets = array_merge(
+            $this->breadPresetFiltersBrowseDefault(),
+            $this->breadPresetFiltersBrowseAdvanced()
+        );
+
+        return $presets;
     }
 
     protected function breadEmptyBrowseContent()
@@ -153,11 +224,65 @@ trait BreadControllerTrait
         return $content;
     }
 
+    /**
+     * @param \Eloquent|null $query
+     * @return \Illuminate\Contracts\Routing\ResponseFactory|\Symfony\Component\HttpFoundation\Response
+     */
+    protected function breadExport($query = null)
+    {
+        // Нужно ли получать $query неявно?
+        //$query = $query ?: $this->breadQueryBrowseFiltered($this->breadQueryBrowse());
+
+        if (request('_export') == 'csv') {
+            if (request('id')) {
+                // @todo Отфильтровать по id
+                echo "<pre>"; print_r('IDs'); echo "</pre>"; exit;
+                //$query->whereId(array_wrap(request('id')))
+            }
+
+            /** @var \Illuminate\Support\Collection $collection */
+            $collection = $query->get();
+
+            /** @var \Illuminate\Database\Eloquent\Model|array|null $first */
+            $first = $collection->first();
+            // @todo Use a $this->breadColumnsBrowse()
+            $columns = ($first instanceof \Illuminate\Database\Eloquent\Model) ? array_keys($first->getAttributes()) : array_keys((array)$first);
+
+            // @todo Добавить в вывод самой таблицы ссылку на последнего поставщика (1688.com)
+            // @todo Добавить в вывод самой таблицы ссылку на draft.supply[domain=sawius.com.ua]
+            // @todo Отображать columns[0].transformer=img как превью с ссылкой
+            $csv = implode("\t", $columns)."\n";
+            foreach ($collection as $item) {
+                $itemArray = $columns = ($first instanceof \Illuminate\Database\Eloquent\Model) ? $item->toArray() : (array)$item;
+
+                foreach ($itemArray as $key => $val) {
+                    // @todo Как экспортнуть description в CSV
+                    if (str_contains($val, '"') || str_contains($val, "\n")) {
+                        $itemArray[$key] = '"'.str_replace('"', '""', $val).'"';
+                    }
+                }
+
+                $line = implode("\t", $itemArray) . "\n";
+                $csv .= $line;
+            }
+
+            //return response($csv, 200, ["Content-Type" => "text/plain"]);
+            return response($csv, 200, ["Content-Type" => "text/csv"]);
+        }
+
+        die("Not implemented! Allow export to CSV only.");
+    }
+
     /** Browse a resources list */
     public function index()
     {
         $query = $this->breadQueryBrowse();
         $this->breadQueryBrowseFiltered($query);
+
+        if (request('_export')) {
+            return $this->breadExport($query);
+        }
+
         $paginator = $query->paginate($this->breadPerPage());
         // @see http://qaru.site/questions/414474/limit-amount-of-links-shown-with-laravel-pagination
 
@@ -166,7 +291,8 @@ trait BreadControllerTrait
             'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
-            'columns' => $this->breadColumnsBrowse(),
+            'columns' => $this->breadColumnsDisplayingBrowse(),
+            'columns_settings' => $this->breadColumnsSettingsBrowse(),
             'actions' => $this->breadActionsBrowse(),
             'mass_actions' => $this->breadMassActionsBrowse(),
             'empty_content' => $this->breadEmptyBrowseContent(),
@@ -183,7 +309,7 @@ trait BreadControllerTrait
             'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
-            'columns' => $this->breadColumnsForm(),
+            'columns' => $this->breadColumnsSettingsForm(),
             'item' => []
         ];
 
@@ -223,7 +349,7 @@ trait BreadControllerTrait
             'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
-            'columns' => $this->breadColumnsForm(),
+            'columns' => $this->breadColumnsSettingsForm(),
             'id' => $id,
             'item' => $item
         ];

@@ -37,18 +37,25 @@
                                     <div class="dropdown-item">
                                         @if(is_array($action))
                                             @include('bread::parts.mass_action_form', $action)
+                                        @elseif(is_string($action))
+                                            {!! app('bread')->renderBlade($action) !!}
                                         @endif
                                     </div>
                                 @endforeach
-                                <div class="dropdown-item">
+                                {{--<div class="dropdown-item">
                                     @include('bread::parts.mass_action_form', ['name' => 'Delete', 'action' => route("$prefix.destroy", 0)])
-                                </div>
+                                </div>--}}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                @include('bread::table', ['paginator' => $paginator, 'columns' => $columns, 'prefix' => $prefix])
+                @include('bread::table', [
+                    'paginator' => $paginator,
+                    'columns' => $columns,
+                    'columns_settings' => $columns_settings,
+                    'prefix' => $prefix
+                ])
             </div>
         </div>
     </div>
