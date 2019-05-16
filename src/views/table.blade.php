@@ -5,6 +5,13 @@
         .bread-table .bread-actions > div { float: right; }
         .bread-table tbody .btn { white-space: nowrap; padding: 5px 10px; margin: 0 0 0 2px; }
         .breadMassActionsWrap .dropdown-item .btn { white-space: nowrap; }
+
+        .table.bread-table th .sorting-cell-inner  { display: inline-block; position: relative; }
+        .table.bread-table th .sorting-cell-inner .sortAsc  { display: inline-block; position: absolute; top: -2px; left: -10px; }
+        .table.bread-table th .sorting-cell-inner .sortDesc { display: inline-block; position: absolute; bottom: 2px; right: -10px; }
+        .table.bread-table th .sorting-cell-inner .sortAsc, .table.bread-table th .sorting-cell-inner .sortDesc { display: none; }
+        /*.table.bread-table th .sorting-cell-inner:hover .sortAsc, .table.bread-table th .sorting-cell-inner:hover .sortDesc { display: inline-block; }*/
+        .table.bread-table th:hover .sortAsc, .table.bread-table th:hover .sortDesc { display: inline-block; }
     </style>
 
     <script>
@@ -68,7 +75,11 @@
                     @if (strpos($key, '.'))
                         {{ $header }}
                     @else
-                        <a href="{{ route("$prefix.index") }}?order={{ $order }}&{{ query_except('order') }}">{{ $header }}</a>
+                        <div class="sorting-cell-inner">
+                            <a href="{{ route("$prefix.index") }}?order={{ $order }}&{{ query_except('order') }}">{{ $header }}</a>
+                            <a href="{{ route("$prefix.index") }}?order={{ trim($order, '-') }}&{{ query_except('order') }}" class="sortAsc" title="По возрастанию (сначала меньшие)">▵</a>
+                            <a href="{{ route("$prefix.index") }}?order={{ trim($order, '-') }}&{{ query_except('order') }}" class="sortDesc" title="По убыванию (сначала большие)">▿</a>
+                        </div>
                     @endif
                 </th>
             @endforeach
@@ -127,6 +138,7 @@
                     @if (preg_match('/card:(.+),(.+),(.+)/', $transformer, $match))
                         <?php
                             $cardThumbnail = data_get($item, $match[1]);
+                            // @todo Сервиса ImageManager здесь быть не должно. Закончить функционал `prepare`
                             $cardThumbnail = $cardThumbnail ? app('ImageManager')->cache($cardThumbnail, 'x120') : '//placehold.jp/48x48.png';
                             $cardName = data_get($item, $match[2], '');
                             $cardUrl = data_get($item, $match[3], '');

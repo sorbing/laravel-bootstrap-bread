@@ -20,10 +20,23 @@
                             $pos = strpos($key, '_id');
                             $isSelect = (bool)$pos;
 
+                            // @todo $columnOptions
                             if ($isSelect && empty($columnOptions)) {
-                                $columnOptionsTable = substr($key, 0, $pos) . 's';
-                                if (Schema::hasTable($columnOptionsTable) && Schema::hasColumn($columnOptionsTable, 'name')) {
-                                    $columnOptions = \DB::table($columnOptionsTable)->select(['id', 'name'])->pluck('name', 'id')->all();
+                                $optionsTable = substr($key, 0, $pos) . 's';
+
+                                // @note Try determine the Model for getting <options>
+                                $optionsModelClass = 'App\\' . studly_case(str_singular($optionsTable));
+                                $optionsModel = null;
+                                if (class_exists($optionsModelClass)) {
+                                    $optionsModel = app($optionsModelClass);
+                                } else if (class_exists($optionsModelClass = 'App\\Models\\' . studly_case(str_singular($optionsTable)))) {
+                                    $optionsModel = app($optionsModelClass);
+                                }
+
+                                if (is_object($optionsModel) && method_exists($optionsModel, 'getPlainOptions')) {
+                                    $columnOptions = $optionsModel::getPlainOptions();
+                                } else if (Schema::hasTable($optionsTable) && Schema::hasColumn($optionsTable, 'name')) {
+                                    $columnOptions = \DB::table($optionsTable)->select(['id', 'name'])->pluck('name', 'id')->all();
                                 }
                             }
                         ?>
@@ -41,6 +54,8 @@
                                                 <option value="{{ $optionId }}" {{$selected}}>{{ $optionName }}</option>
                                             @endforeach
                                         </select>
+                                    @elseif(preg_match('/description|_json/', $key))
+                                        <textarea class="form-control" id="{{ $fieldKey }}" name="{{ $key }}" {{ $readonly }}>{!! data_get($item, $key, '') !!}</textarea>
                                     @else
                                         {{--aria-describedby="emailHelp" placeholder="Enter email"--}}
                                         <input type="text" class="form-control" id="{{ $fieldKey }}" name="{{ $key }}" value="{{ data_get($item, $key, '') }}" {{ $readonly }}>

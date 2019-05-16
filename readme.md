@@ -29,3 +29,7 @@ And register resource routes:
 #### Dropdown menu
 
 @note: For used `.dropdown` components - append the code `@stack('bread_assets')` in your layout template, before closed tag `</body>` (or other place).
+
+#### Select in Form
+
+Implement the Model method `getPlainOptions()` that return the options array `['ID' => 'Name', ...]` for `<select>...</select>` element.

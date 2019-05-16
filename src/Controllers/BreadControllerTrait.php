@@ -39,9 +39,7 @@ trait BreadControllerTrait
         return isset($this->breadPerPage) ? $this->breadPerPage : $defaultPerPage;
     }
 
-    /**
-     * @return \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder
-     */
+    /** @return \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder */
     protected function breadQuery()
     {
         $table = $this->breadTable();
