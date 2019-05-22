@@ -33,3 +33,9 @@ And register resource routes:
 #### Select in Form
 
 Implement the Model method `getPlainOptions()` that return the options array `['ID' => 'Name', ...]` for `<select>...</select>` element.
+
+
+### Roadmap
+
++ ✔ 2019-05-22 Implement the BreadControllerTrait::breadDetectModel() - smart detecting a Model class in \App\ModelName or \App\Models\ModelName.
+

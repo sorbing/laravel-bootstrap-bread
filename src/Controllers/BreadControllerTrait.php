@@ -43,9 +43,32 @@ trait BreadControllerTrait
     protected function breadQuery()
     {
         $table = $this->breadTable();
-        $query = \DB::table($table);
+        $model = $this->breadDetectModel();
+
+        if ($model) {
+            $query = $model;
+        } else {
+            $query = \DB::table($table);
+        }
 
         return $query;
+    }
+
+    /**
+     * @return null|\Illuminate\Database\Eloquent\Model
+     */
+    protected function breadDetectModel()
+    {
+        $table = $this->breadTable();
+
+        $model = null;
+        if (class_exists($modelClass = '\\App\\' . studly_case(str_singular($table)))) {
+            $model = new $modelClass;
+        } elseif (class_exists($modelClass = '\\App\\Models\\' . studly_case(str_singular($table)))) {
+            $model = new $modelClass;
+        }
+
+        return $model;
     }
 
     protected function breadQueryBrowse()
@@ -163,7 +186,7 @@ trait BreadControllerTrait
     protected function breadActionsBrowse()
     {
         return [
-            /*[ // @todo Возвожность указать имя в качестве ключа массива?
+            /*[ // @todo Возможность указать имя в качестве ключа массива?
                 'name' => 'Button name',
                 'title' => 'Action title attribute value',
                 'action' => function($item) {
@@ -341,7 +364,9 @@ trait BreadControllerTrait
      */
     public function edit(int $id)
     {
-        $item = $this->breadQueryForm()->where('id', $id)->first();
+        $item = $this->breadQueryForm()->where('id', $id)->first(); // @note Not use `firstOrFail()`. Error: "Method \Illuminate\Database\Query\Builder::firstOrFail does not exist"
+
+        abort_unless($item, 404); // Not Found
 
         $data = [
             'title' => $this->breadTitle(),
