@@ -63,9 +63,9 @@ trait BreadControllerTrait
 
         $model = null;
         if (class_exists($modelClass = '\\App\\' . studly_case(str_singular($table)))) {
-            $model = new $modelClass;
+            $model = new $modelClass; // @note Maybe $modelClass::newModelInstance() ?
         } elseif (class_exists($modelClass = '\\App\\Models\\' . studly_case(str_singular($table)))) {
-            $model = new $modelClass;
+            $model = new $modelClass; // @note Maybe $modelClass::newModelInstance() ?
         }
 
         return $model;
@@ -390,6 +390,27 @@ trait BreadControllerTrait
         return $this->breadUpdate($id);
     }
 
+    public function breadReadableSingularEntityName()
+    {
+        $readableName = str_singular($this->breadTable());
+
+        $model = $this->breadDetectModel();
+
+        if ($model && $model instanceof \Illuminate\Database\Eloquent\Model) {
+            $modelClass = get_class($model);
+            $path = explode('\\', $modelClass);
+            $readableName = array_pop($path);
+
+            if (defined("$modelClass::READABLE_NAME") && !empty($modelClass::READABLE_NAME)) {
+                $readableName = $modelClass::READABLE_NAME;
+            }
+        }
+
+        $readableName = ucfirst($readableName);
+
+        return $readableName;
+    }
+
     /**
      * It provides the ability to easily extend the update action
      * @param int $id
@@ -400,15 +421,25 @@ trait BreadControllerTrait
         $data = request()->except(['id', 'created_at', 'updated_at', '_token', '_method', '_prev_index_url']);
 
         $query = $this->breadQuery();
-        if ($query instanceof \Illuminate\Database\Query\Builder) {
+        if ($query instanceof \Illuminate\Database\Eloquent\Model) { // @note $query is \App\Models\SomeModel
+            //$query->findOrFail($id)->update();
+            $isSuccess = $query->whereId($id)->update($data);
+            //$isSuccess = (new \App\Models\Product)->where('id', $id)->update($data);
+        } elseif ($query instanceof \Illuminate\Database\Query\Builder) {
             $int = $query->where('id', $id)->update($data);
         } else if ($query instanceof \Illuminate\Database\Eloquent\Builder) {
-            $success = $query->find($id)->fill($data)->save(); // @note For a eloquent events works
+            $isSuccess = $query->find($id)->fill($data)->save(); // @note For a eloquent events works
         }
 
         $defaultUrl = url()->route($this->breadRouteNamePrefix().'.index');
         $prevIndexUrl = request('_prev_index_url', $defaultUrl); // back_or()
-        return redirect($prevIndexUrl)->with('success', "Resource #$id updated.");
+
+        $readableName = $this->breadReadableSingularEntityName();
+
+        // @todo Check $isSuccess and handle cases
+        // @todo Метод модели `Product::READABLE_NAME = 'Товар'`
+
+        return redirect($prevIndexUrl)->with('success', sprintf('%s #%s updated.', $readableName, $id)); // Resource
     }
 
     /**
