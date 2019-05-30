@@ -12,6 +12,16 @@
         .table.bread-table th .sorting-cell-inner .sortAsc, .table.bread-table th .sorting-cell-inner .sortDesc { display: none; }
         /*.table.bread-table th .sorting-cell-inner:hover .sortAsc, .table.bread-table th .sorting-cell-inner:hover .sortDesc { display: inline-block; }*/
         .table.bread-table th:hover .sortAsc, .table.bread-table th:hover .sortDesc { display: inline-block; }
+
+        @foreach($columns as $key)
+            <?php
+                $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null;
+                $width = data_get($column, 'width', ($key == 'id') ? 50 : '');
+                $colStyle = $width ? "width: {$width}px; " : '';
+                $colStyle .= data_get($column, 'css', '');
+            ?>
+            .table.bread-table .bread-col-{{ $key }} { {{ $colStyle }} }
+        @endforeach
     </style>
 
     <script>
@@ -63,22 +73,19 @@
         <tr>
             <th><input type="checkbox" class="inputToggleCheckboxes" onchange="window.toggleAllBreadIdsCheckboxes(this)" /></th>
             @foreach($columns as $key)
+                <?php $colClass = "bread-col-{$key}"; ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
                 <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <?php $order = (request('order') == "-$key") ? $key : "-$key"; ?>
                 <?php $header = !empty($column['name']) ? $column['name'] : ucwords(str_replace(['_', '.'], ' ', $key)); ?>
-                <?php
-                    $width = data_get($column, 'width', ($key == 'id') ? 50 : '');
-                    $colStyle = $width ? "style=\"width: {$width}px;\"" : '';
-                ?>
-                <th {!! $colStyle or '' !!} title="{{ data_get($column, 'title') }}" class="text-center">
+                <th title="{{ data_get($column, 'title') }}" class="text-center {{ $colClass }}">
                     @if (strpos($key, '.'))
                         {{ $header }}
                     @else
                         <div class="sorting-cell-inner">
                             <a href="{{ route("$prefix.index") }}?order={{ $order }}&{{ query_except('order') }}">{{ $header }}</a>
                             <a href="{{ route("$prefix.index") }}?order={{ trim($order, '-') }}&{{ query_except('order') }}" class="sortAsc" title="По возрастанию (сначала меньшие)">▵</a>
-                            <a href="{{ route("$prefix.index") }}?order={{ trim($order, '-') }}&{{ query_except('order') }}" class="sortDesc" title="По убыванию (сначала большие)">▿</a>
+                            <a href="{{ route("$prefix.index") }}?order=-{{ trim($order, '-') }}&{{ query_except('order') }}" class="sortDesc" title="По убыванию (сначала большие)">▿</a>
                         </div>
                     @endif
                 </th>
@@ -88,9 +95,10 @@
         <tr>
             <td></td>
             @foreach($columns as $key)
+                <?php $colClass = "bread-col-{$key}"; ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
                 <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
-                <td style="margin: 0; padding: 0;">
+                <td class="{{ $colClass }}" style="margin: 0; padding: 0;">
                     <form name="filter" action="{{ route("$prefix.index") }}" method="get">
                         <input type="hidden" name="order" value="{{ request('order') }}"/>
                         @foreach(request()->except(['order', $key]) as $prevKey => $prevVal)
@@ -115,6 +123,7 @@
         <tr>
             <td class="id"><input type="checkbox" name="id[]" value="{{ $id }}" onchange="window.toggleBreadIdCheckbox(this)"/></td>
             @foreach($columns as $key)
+                <?php $colClass = "bread-col-{$key}"; ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
                 <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <?php
@@ -131,7 +140,7 @@
 
                 {{-- @todo Применить transformer, а уже после него template --}}
                 @if(!empty($column['template']))
-                    <td>
+                    <td class="{{ $colClass }}">
                         {!! app('bread')->renderBlade($column['template'], ['key' => $key, 'id' => $id, 'value' => $value, 'column' => $column, 'item' => $item]) !!}
                     </td>
                 @elseif ($transformer)
@@ -143,7 +152,7 @@
                             $cardName = data_get($item, $match[2], '');
                             $cardUrl = data_get($item, $match[3], '');
                         ?>
-                        <td>
+                        <td class="{{ $colClass }}">
                             <div class="d-flex">
                                 <div>
                                     <a href="{{ $cardUrl }}" target="_blank">
@@ -157,17 +166,17 @@
                             </div>
                         </td>
                     @elseif (preg_match('/link:(.+)/', $transformer, $match))
-                        <td>{!! link_to($match[1], $value) !!}</td>
+                        <td class="{{ $colClass }}">{!! link_to($match[1], $value) !!}</td>
                     @elseif (preg_match('/date:(.+)/', $transformer, $match))
                         {{--<td>{{ $value }}</td>--}}
-                        <td>{{ $value ? date($match[1], strtotime($value)) : ''}}</td>
+                        <td class="{{ $colClass }}">{{ $value ? date($match[1], strtotime($value)) : ''}}</td>
                     @elseif($transformer === 'img')
-                        <td>{!! Html::image($value, '', ['height' => 30]) !!}</td>
+                        <td class="{{ $colClass }}">{!! Html::image($value, '', ['height' => 30]) !!}</td>
                     @elseif(is_callable($transformer))
-                        <td>{!! $transformer($value, $item) !!}</td>
+                        <td class="{{ $colClass }}">{!! $transformer($value, $item) !!}</td>
                     @endif
                 @else
-                    <td>{!! $value !!}</td>
+                    <td class="{{ $colClass }}">{!! $value !!}</td>
                 @endif
             @endforeach
             <td class="bread-actions">
