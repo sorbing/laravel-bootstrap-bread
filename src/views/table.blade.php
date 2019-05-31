@@ -20,7 +20,7 @@
                 $colStyle = $width ? "width: {$width}px; " : '';
                 $colStyle .= data_get($column, 'css', '');
             ?>
-            .table.bread-table .bread-col-{{ $key }} { {{ $colStyle }} }
+            .table.bread-table .bread-col-{{ str_replace('.', '-', $key) }} { {{ $colStyle }} }
         @endforeach
     </style>
 
@@ -73,7 +73,7 @@
         <tr>
             <th><input type="checkbox" class="inputToggleCheckboxes" onchange="window.toggleAllBreadIdsCheckboxes(this)" /></th>
             @foreach($columns as $key)
-                <?php $colClass = "bread-col-{$key}"; ?>
+                <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
                 <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <?php $order = (request('order') == "-$key") ? $key : "-$key"; ?>
@@ -95,7 +95,7 @@
         <tr>
             <td></td>
             @foreach($columns as $key)
-                <?php $colClass = "bread-col-{$key}"; ?>
+                <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
                 <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <td class="{{ $colClass }}" style="margin: 0; padding: 0;">
@@ -123,7 +123,7 @@
         <tr>
             <td class="id"><input type="checkbox" name="id[]" value="{{ $id }}" onchange="window.toggleBreadIdCheckbox(this)"/></td>
             @foreach($columns as $key)
-                <?php $colClass = "bread-col-{$key}"; ?>
+                <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
                 <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <?php
