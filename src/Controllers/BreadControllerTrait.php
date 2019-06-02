@@ -125,7 +125,7 @@ trait BreadControllerTrait
 
         $filters = [];
         foreach (request()->except($exceptFilters) as $key => $val) {
-            if (preg_match('/^[a-z][a-z_]+$/', $key) && !empty($val)) {
+            if (preg_match('/^[a-z][a-z_\d]+$/', $key) && $val !== '') {
                 $filters[$key] = $val;
             }
         }
