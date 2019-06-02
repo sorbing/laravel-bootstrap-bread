@@ -80,9 +80,11 @@ trait BreadControllerTrait
      * @param \Eloquent $query
      * @return \Eloquent
      */
-    protected function breadQueryBrowseFiltered($query)
+    protected function breadQueryBrowseFiltered($query, array $filters = [])
     {
-        $filters = $this->breadGetCurrentBrowseFilters();
+        if (!count($filters)) {
+            $filters = $this->breadGetCurrentBrowseFilters();
+        }
 
         foreach ($filters as $key => $val) {
             if (strpos($val, '~') === 0) {
@@ -125,7 +127,7 @@ trait BreadControllerTrait
 
         $filters = [];
         foreach (request()->except($exceptFilters) as $key => $val) {
-            if (preg_match('/^[a-z][a-z_\d]+$/', $key) && $val !== '') {
+            if (preg_match('/^[a-z][a-z_\d]+$/', $key) && mb_strlen($val)) {
                 $filters[$key] = $val;
             }
         }

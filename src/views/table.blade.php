@@ -102,9 +102,10 @@
                 <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <td class="{{ $colClass }}" style="margin: 0; padding: 0;">
                     <form name="filter" action="{{ route("$prefix.index") }}" method="get">
-                        <input type="hidden" name="order" value="{{ request('order') }}"/>
+                        <input type="hidden" name="order" value="{{ request('order') }}" />
+                        {{--<input type="hidden" name="_confirmed_batch_action" value="{{ session('_confirmed_batch_action') }}"/>--}}
                         @foreach(request()->except(['order', $key]) as $prevKey => $prevVal)
-                            @if (!empty($prevVal))
+                            @if (mb_strlen($prevVal))
                                 <input type="hidden" name="{{ $prevKey }}" value="{{ $prevVal }}"/>
                             @endif
                         @endforeach
