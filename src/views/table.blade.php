@@ -16,8 +16,10 @@
         @foreach($columns as $key)
             <?php
                 $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null;
+                $align = data_get($column, 'align', 'center');
                 $width = data_get($column, 'width', ($key == 'id') ? 50 : '');
-                $colStyle = $width ? "width: {$width}px; " : '';
+                $colStyle = $align ? "text-align: {$align}; " : '';
+                $colStyle .= $width ? "width: {$width}px; " : '';
                 $colStyle .= data_get($column, 'css', '');
             ?>
             .table.bread-table .bread-col-{{ str_replace('.', '-', $key) }} { {{ $colStyle }} }
