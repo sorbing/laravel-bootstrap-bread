@@ -213,7 +213,7 @@ trait BreadControllerTrait
         $exportParams = array_merge(['_export' => 'csv'], request()->all());
 
         return [
-            ['name' => 'Delete', 'action' => route("$prefix.destroy", 0), 'method' => 'DELETE'],
+            ['name' => 'Delete Checked', 'action' => route("$prefix.destroy", 0), 'method' => 'DELETE'],
             ['name' => 'Export CSV', 'action' => route("$prefix.index"), 'method' => 'GET', 'params' => $exportParams, 'attrs' => ['target' => '_blank']],
         ];
     }

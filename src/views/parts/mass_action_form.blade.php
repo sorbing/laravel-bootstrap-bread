@@ -5,7 +5,7 @@
     @endforeach
 @endif
 
-<form action="{{ $action }}" method="{{ $method or "POST" }}" class="breadMassActionForm d-inline" {!! $formAttrs !!}>
+<form action="{{ $action }}" method="{{ isset($method) && $method == 'GET' ? 'GET' : "POST" }}" class="breadMassActionForm d-inline" {!! $formAttrs !!}>
     <input type="hidden" name="_method" value="{{ $method or "POST" }}" />
     {!! @csrf_field() !!}
 
