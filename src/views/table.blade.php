@@ -185,17 +185,31 @@
             <td class="bread-actions">
                 <div>
                     <div class="d-inline-block bread-actions-custom">
-                        @if (!empty($actions) && is_array($actions))
-                            @foreach($actions as $action)
-                                @if (is_array($action))
-                                    <?php $url = is_callable(data_get($action, 'action')) ? $action['action']($item) : data_get($action, 'action'); ?>
-                                    {{--{!! app('bread')->renderBlade($action['template'], ['key' => $key, 'value' => $value, 'column' => $column, 'item' => $item]) !!}--}}
-                                    <a href="{{ $url }}" title="{{ data_get($action, 'title') }}" class="btn btn-sm btn-outline-primary">{{ data_get($action, 'name', 'Button') }}</a>
-                                @elseif(is_string($action))
-                                    {!! app('bread')->renderBlade($action, ['id' => $id, 'item' => $item]) !!}
+
+                        <div class="dropdown"> {{--float-md-right breadMassActionsWrap--}}
+                            <button class="btn btn-primary dropdown-toggle" id="breadCustomActionsToggler{{ $id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                ☘{{-- ⚙ --}}
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="breadCustomActionsToggler{{ $id }}" style="right: 5px; left: auto;">
+                                @if (!empty($actions) && is_array($actions))
+                                    @foreach($actions as $action)
+                                        <div class="dropdown-item">
+                                        @if (is_array($action))
+                                            <?php $url = is_callable(data_get($action, 'action')) ? $action['action']($item) : data_get($action, 'action'); ?>
+                                            {{--{!! app('bread')->renderBlade($action['template'], ['key' => $key, 'value' => $value, 'column' => $column, 'item' => $item]) !!}--}}
+                                            <a href="{{ $url }}" title="{{ data_get($action, 'title') }}" class="btn btn-sm btn-outline-primary">{{ data_get($action, 'name', 'Button') }}</a>
+                                        @elseif(is_string($action))
+                                            {!! app('bread')->renderBlade($action, ['id' => $id, 'item' => $item]) !!}
+                                        @endif
+                                        </div>
+                                    @endforeach
                                 @endif
-                            @endforeach
-                        @endif
+
+                                {{--<div class="dropdown-item">
+                                    @include('bread::parts.mass_action_form', ['name' => 'Delete', 'action' => route("$prefix.destroy", 0)])
+                                </div>--}}
+                            </div>
+                        </div>
                     </div>
                     <div class="d-inline-block bread-actions-default">
                         <a href="{{ route("$prefix.edit", $id) }}" class="btn btn-sm btn-outline-primary">✎</a>

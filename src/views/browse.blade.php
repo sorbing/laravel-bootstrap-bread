@@ -24,6 +24,9 @@
                             <style>
                                 .container-bread-browse .dropdown-toggle:focus ~ .dropdown-menu { display: block; }
                                 .container-bread-browse .dropdown .dropdown-menu:hover { display: block; }
+                                .container-bread-browse .dropdown .dropdown-menu { padding: 0.15rem 0; }
+                                .container-bread-browse .dropdown .dropdown-menu .dropdown-item { padding: 0.15rem 0.3rem; }
+                                .container-bread-browse .dropdown .dropdown-menu .dropdown-item > * { display: block; width: 100%; }
                                 /*.container-bread-browse .dropdown:focus .dropdown-menu { display: block; }*/
                             </style>
                         @endpush
@@ -32,7 +35,7 @@
                             <button class="btn btn-primary dropdown-toggle" id="breadMassActionsToggler" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Mass actions
                             </button>
-                            <div class="dropdown-menu" aria-labelledby="breadMassActionsToggler">
+                            <div class="dropdown-menu" aria-labelledby="breadMassActionsToggler" style="right: 5px; left: auto;">
                                 @foreach($mass_actions as $action)
                                     <div class="dropdown-item">
                                         @if(is_array($action))

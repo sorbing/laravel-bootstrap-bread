@@ -3,6 +3,7 @@
 namespace Sorbing\Bread\Controllers;
 
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 trait BreadControllerTrait
 {
@@ -71,14 +72,40 @@ trait BreadControllerTrait
         return $model;
     }
 
+    /**
+     * Get humanized/readable singular Entity (Table, Model)
+     * @return string
+     */
+    protected function breadReadableSingularEntityName()
+    {
+        $readableName = str_singular($this->breadTable());
+
+        $model = $this->breadDetectModel();
+
+        if ($model && $model instanceof \Illuminate\Database\Eloquent\Model) {
+            $modelClass = get_class($model);
+            $path = explode('\\', $modelClass);
+            $readableName = array_pop($path);
+
+            if (defined("$modelClass::READABLE_NAME") && !empty($modelClass::READABLE_NAME)) {
+                $readableName = $modelClass::READABLE_NAME;
+            }
+        }
+
+        $readableName = ucfirst($readableName);
+
+        return $readableName;
+    }
+
     protected function breadQueryBrowse()
     {
         return $this->breadQuery();
     }
 
     /**
-     * @param \Eloquent $query
-     * @return \Eloquent
+     * @param \Illuminate\Database\Eloquent\Builder|\Eloquent $query
+     * @param array $filters Optional
+     * @return \Illuminate\Database\Eloquent\Builder|\Eloquent
      */
     protected function breadQueryBrowseFiltered($query, array $filters = [])
     {
@@ -202,9 +229,6 @@ trait BreadControllerTrait
     {
         $defaultMassActions = $this->breadMassActionsBrowseDefault();
         return $defaultMassActions;
-        /*return [
-            ['name' => 'Button name', 'title' => 'Hint on button', 'action' => route('admin.users.action_name')],
-        ];*/
     }
 
     protected function breadMassActionsBrowseDefault()
@@ -213,8 +237,8 @@ trait BreadControllerTrait
         $exportParams = array_merge(['_export' => 'csv'], request()->all());
 
         return [
-            ['name' => 'Delete Checked', 'action' => route("$prefix.destroy", 0), 'method' => 'DELETE'],
-            ['name' => 'Export CSV', 'action' => route("$prefix.index"), 'method' => 'GET', 'params' => $exportParams, 'attrs' => ['target' => '_blank']],
+            ['name' => 'Export CSV',   'action' => route("$prefix.index"), 'method' => 'GET', 'params' => $exportParams, 'attrs' => ['target' => '_blank']],
+            ['name' => 'Delete Batch', 'action' => route("$prefix.destroy", 0), 'method' => 'DELETE'],
         ];
     }
 
@@ -392,27 +416,6 @@ trait BreadControllerTrait
         return $this->breadUpdate($id);
     }
 
-    public function breadReadableSingularEntityName()
-    {
-        $readableName = str_singular($this->breadTable());
-
-        $model = $this->breadDetectModel();
-
-        if ($model && $model instanceof \Illuminate\Database\Eloquent\Model) {
-            $modelClass = get_class($model);
-            $path = explode('\\', $modelClass);
-            $readableName = array_pop($path);
-
-            if (defined("$modelClass::READABLE_NAME") && !empty($modelClass::READABLE_NAME)) {
-                $readableName = $modelClass::READABLE_NAME;
-            }
-        }
-
-        $readableName = ucfirst($readableName);
-
-        return $readableName;
-    }
-
     /**
      * It provides the ability to easily extend the update action
      * @param int $id
@@ -445,26 +448,96 @@ trait BreadControllerTrait
     }
 
     /**
-     * Remove the resource from storage
-     * @param int $id
+     * Remove the resource(s) from storage by ID, IDs, previous query filters
+     * @param int|mixed $mix ID or other
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function destroy(int $id = 0)
+    public function destroy($mix = null)
     {
-        $deletedCount = 0;
-        $perPage = $this->breadPerPage();
+        return $this->breadBatchActionHandle(function($query, $browseRedirectResponse) {
+            /** @var \Eloquent|\Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder $query */
+            /** @var \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse $browseRedirectResponse */
+            $affectedCount = $query->delete();
 
-        if ($id > 0) {
-            $deletedCount = $this->breadQuery()->where('id', $id)->delete();
-        } else if ($ids = array_wrap(request('id'))) {
-            if (count($ids) && count($ids) <= $perPage) {
-                $query = $this->breadQuery()->whereIn('id', $ids);
-                if ($query->count() <= $perPage) {
-                    $deletedCount = $query->delete();
+            return $browseRedirectResponse->with('success', sprintf('Deleted %s items.', $affectedCount));
+        });
+    }
+
+    protected function breadBatchActionHandle(callable $callbackQueryHandler)
+    {
+        try {
+            $previousUrl = \URL::previous();
+
+            $query = $this->breadQueryBatch();
+            $count = $query->count();
+
+            if ($count >= 10) { // $this->breadPerPage()
+                $confirmedRedirectUrl = str_replace('&_confirmed_batch_action', '', $previousUrl);
+                $confirmedRedirectUrl = $confirmedRedirectUrl . '&_confirmed_batch_action';// . http_build_query(['']);
+                //echo "<pre>"; print_r(request()->toArray()); echo "</pre>"; exit;
+                if (!strpos($previousUrl, '_confirmed_batch_action')) {
+                    return redirect($confirmedRedirectUrl)->with(['warning' => sprintf('Batch action trying affected on %s items. Please, repeat this action for confirmed.', $count)]);
                 }
             }
+
+            $browseRedirectUrl = str_replace('_confirmed_batch_action', '', $previousUrl);
+            $browseRedirectUrl = trim($browseRedirectUrl, '&');
+            $browseRedirectResponse = redirect($browseRedirectUrl)->with('success', sprintf('Affected %s items.', $count));
+
+            $callbackHttpResponse = $callbackQueryHandler($query, $browseRedirectResponse);
+
+            if (!($callbackHttpResponse instanceof \Symfony\Component\HttpFoundation\Response)) {
+                return $browseRedirectResponse->with(['success' => '', 'error' => sprintf('Method %s expected returns as \Symfony\Component\HttpFoundation\Response, but %s given.', __METHOD__, get_class($callbackHttpResponse))]);
+            }
+
+            return $callbackHttpResponse;
+
+        } catch (\Exception $e) {
+            return back()->with('warning', sprintf('%s', $e->getMessage()));
+        }
+    }
+
+    /**
+     * @param int|mixed|null $id
+     * @return \Eloquent|\Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder
+     */
+    protected function breadQueryBatch()
+    {
+        $id = array_last(request()->segments()); // @note Instead the $id argument
+
+        //$perPage = $this->breadPerPage();
+        $query = $this->breadQueryBrowse();
+
+        if ($id > 0) {
+            // @note Batch Action for one item
+            $query = $query->where('id', $id);
+        } else if ($ids = array_wrap(request('id'))) {
+            // @note Batch Action for items by IDs
+            $query = $query->whereIn('id', $ids);
+            //throw_if($query->count() > $perPage, new \Exception('Maybe something went wrong, because the Batch Action is performed for more IDs than on the page!'));
+        } else {
+            // @note Batch Action for items by previous filtered query
+            $filters = $this->breadFiltersFromPreviousPage();
+            $query = $this->breadQueryBrowseFiltered($query, $filters);
         }
 
-        return back()->with('success', "Deleted $deletedCount items.");
+        return $query;
     }
+
+    protected function breadFiltersFromPreviousPage(): array
+    {
+        $previousUrl = \URL::previous();
+        $previousQuery = parse_url($previousUrl, PHP_URL_QUERY);
+
+        //$filters = array_except(\GuzzleHttp\Psr7\parse_query($previousQuery), ['order', 'page', 'per_page']);
+
+        parse_str($previousQuery, $filters);
+        $filters = array_except($filters, ['order', 'page', 'per_page']);
+        $filters = array_filter($filters, function($val, $field) {
+            return strpos($field, '_') !== 0 && mb_strlen($val);
+        }, ARRAY_FILTER_USE_BOTH);
+
+        return $filters;
+    }
+
 }
