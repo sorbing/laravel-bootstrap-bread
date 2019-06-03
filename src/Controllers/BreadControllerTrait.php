@@ -237,8 +237,8 @@ trait BreadControllerTrait
         $exportParams = array_merge(['_export' => 'csv'], request()->all());
 
         return [
-            ['name' => 'Export CSV',   'action' => route("$prefix.index"), 'method' => 'GET', 'params' => $exportParams, 'attrs' => ['target' => '_blank']],
-            ['name' => 'Delete Batch', 'action' => route("$prefix.destroy", 0), 'method' => 'DELETE'],
+            ['name' => 'Export CSV', 'action' => route("$prefix.index"), 'method' => 'GET', 'params' => $exportParams, 'attrs' => ['target' => '_blank']],
+            ['name' => 'Delete',     'action' => route("$prefix.destroy", 0), 'method' => 'DELETE'],
         ];
     }
 
@@ -457,7 +457,18 @@ trait BreadControllerTrait
         return $this->breadBatchActionHandle(function($query, $browseRedirectResponse) {
             /** @var \Eloquent|\Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder $query */
             /** @var \Illuminate\Routing\Redirector|\Illuminate\Http\RedirectResponse $browseRedirectResponse */
-            $affectedCount = $query->delete();
+
+            //$affectedCount = $query->delete(); // @note Not works a Model::events()!
+
+            $affectedCount = 0;
+            foreach ($query->get() as $item) {
+                $isSuccess = $item->delete();
+                if ($isSuccess) {
+                    $affectedCount++;
+                } else {
+                    \Log::warning(sprintf('Failed deleted the item: %s', print_r($item->toArray(), true)));
+                }
+            }
 
             return $browseRedirectResponse->with('success', sprintf('Deleted %s items.', $affectedCount));
         });

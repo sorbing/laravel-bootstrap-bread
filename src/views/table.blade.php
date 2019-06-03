@@ -13,6 +13,11 @@
         /*.table.bread-table th .sorting-cell-inner:hover .sortAsc, .table.bread-table th .sorting-cell-inner:hover .sortDesc { display: inline-block; }*/
         .table.bread-table th:hover .sortAsc, .table.bread-table th:hover .sortDesc { display: inline-block; }
 
+        /* Bread card widget popup big image */
+        .table.bread-table .bread-card-widget .bread-thumbnail-popup { display: none; }
+        .table.bread-table .bread-card-widget .bread-thumbnail:hover ~ .bread-thumbnail-popup { display: block !important; }
+        .table.bread-table .bread-card-widget .bread-thumbnail-popup:hover { display: block !important; }
+
         @foreach($columns as $key)
             <?php
                 $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null;
@@ -147,19 +152,30 @@
                         {!! app('bread')->renderBlade($column['template'], ['key' => $key, 'id' => $id, 'value' => $value, 'column' => $column, 'item' => $item]) !!}
                     </td>
                 @elseif ($transformer)
-                    @if (preg_match('/card:(.+),(.+),(.+)/', $transformer, $match))
+                    @if (preg_match('/card:([^,]+),([^,]+),([^,]+)(?:,(.+)|)/', $transformer, $match))
                         <?php
                             $cardThumbnail = data_get($item, $match[1]);
                             // @todo Сервиса ImageManager здесь быть не должно. Закончить функционал `prepare`
                             $cardThumbnail = $cardThumbnail ? app('ImageManager')->cache($cardThumbnail, 'x120') : '//placehold.jp/48x48.png';
                             $cardName = data_get($item, $match[2], '');
-                            $cardUrl = data_get($item, $match[3], '');
+
+                            // @note Instead methods use the `Model::getMyCustomAttribute()` method!
+                            if (strpos($match[3], '(')) {
+                                $cardUrl = call_user_func_array([$item, trim($match[3], '()')], []);
+                            } else {
+                                $cardUrl = data_get($item, $match[3], '');
+                            }
+
+                            $cardPopupImage = isset($match[4]) ? data_get($item, $match[4]) : null;
                         ?>
                         <td class="{{ $colClass }}">
-                            <div class="d-flex">
-                                <div>
+                            <div class="d-flex bread-card-widget">
+                                <div class="position-relative">
                                     <a href="{{ $cardUrl }}" target="_blank">
-                                        <img src="{{ $cardThumbnail }}" alt="{{$match[1]}}" width="48">
+                                        <img src="{{ $cardThumbnail }}" alt="{{$match[1]}}" width="48" class="bread-thumbnail" />
+                                        @if ($cardPopupImage)
+                                        <img src="{{ $cardPopupImage }}" class="bread-thumbnail-popup" style="position: absolute; top: 0; left: 50px; max-width: 360px;" />
+                                        @endif
                                     </a>
                                 </div>
                                 <div class="align-self-stretch ml-1">
