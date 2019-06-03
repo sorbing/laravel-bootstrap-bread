@@ -131,15 +131,14 @@
         <tr>
             <td class="id"><input type="checkbox" name="id[]" value="{{ $id }}" onchange="window.toggleBreadIdCheckbox(this)"/></td>
             @foreach($columns as $key)
-                <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
-                <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
-                <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
                 <?php
+                    $colClass = "bread-col-" . str_replace('.', '-', $key);
+                    $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null;
+
+                    if (!$column || data_get($column, 'hide')) { continue; }
+
                     $value = data_get($item, $key, '');
                     $transformer = !empty($column['transformer']) ? $column['transformer'] : null;
-                ?>
-
-                <?php
                     $prepareTemplate = !empty($column['prepare']) ? $column['prepare'] : null;
                     if ($prepareTemplate) {
                         $value = app('bread')->renderBlade($prepareTemplate, ['key' => $key, 'id' => $id, 'value' => $value, 'column' => $column, 'item' => $item]);
@@ -157,7 +156,8 @@
                             $cardThumbnail = data_get($item, $match[1]);
                             // @todo Сервиса ImageManager здесь быть не должно. Закончить функционал `prepare`
                             $cardThumbnail = $cardThumbnail ? app('ImageManager')->cache($cardThumbnail, 'x120') : '//placehold.jp/48x48.png';
-                            $cardName = data_get($item, $match[2], '');
+
+                            $cardText = data_get($item, $match[2], $value); // @todo Пока только для позиции card:text по дефолту отображается $value
 
                             // @note Instead methods use the `Model::getMyCustomAttribute()` method!
                             if (strpos($match[3], '(')) {
@@ -180,7 +180,7 @@
                                 </div>
                                 <div class="align-self-stretch ml-1">
                                     {{--<a href="{{ data_get($item, $match[3], '') }}" target="_blank">🔗</a>--}}
-                                    {{ $cardName }}
+                                    {!! $cardText !!}
                                 </div>
                             </div>
                         </td>
