@@ -14,7 +14,7 @@
         .table.bread-table th:hover .sortAsc, .table.bread-table th:hover .sortDesc { display: inline-block; }
 
         /* Bread card widget popup big image */
-        .table.bread-table .bread-card-widget .bread-thumbnail-popup { display: none; }
+        .table.bread-table .bread-card-widget .bread-thumbnail-popup { display: none; margin-top: -160px; }
         .table.bread-table .bread-card-widget .bread-thumbnail:hover ~ .bread-thumbnail-popup { display: block !important; }
         .table.bread-table .bread-card-widget .bread-thumbnail-popup:hover { display: block !important; }
 
@@ -194,6 +194,16 @@
                     @elseif(is_callable($transformer))
                         <td class="{{ $colClass }}">{!! $transformer($value, $item) !!}</td>
                     @endif
+                @elseif (preg_match('/_json$/', $key))
+                    <td class="{{ $colClass }}">
+                        <?php
+                            $decodedValue = json_decode($value, true);
+                            if ($decodedValue) {
+                                $decodedValue = function_exists('array_print') ? array_print($decodedValue) : print_r($decodedValue, true);
+                            }
+                        ?>
+                        <pre style="text-align: left">{!! $decodedValue ?: $value !!}</pre>
+                    </td>
                 @else
                     <td class="{{ $colClass }}">{!! $value !!}</td>
                 @endif
