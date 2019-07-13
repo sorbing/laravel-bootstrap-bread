@@ -78,6 +78,7 @@
 <table class="table bread-table">
     <thead>
         <tr>
+            {{-- Title --}}
             <th><input type="checkbox" class="inputToggleCheckboxes" onchange="window.toggleAllBreadIdsCheckboxes(this)" /></th>
             @foreach($columns as $key)
                 <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
@@ -100,6 +101,7 @@
             <th style="text-align: center">Actions</th>
         </tr>
         <tr>
+            {{-- Filters --}}
             <td></td>
             @foreach($columns as $key)
                 <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
@@ -109,7 +111,7 @@
                     <form name="filter" action="{{ route("$prefix.index") }}" method="get">
                         <input type="hidden" name="order" value="{{ request('order') }}" />
                         {{--<input type="hidden" name="_confirmed_batch_action" value="{{ session('_confirmed_batch_action') }}"/>--}}
-                        @foreach(request()->except(['order', $key]) as $prevKey => $prevVal)
+                        @foreach(request()->except(['order', 'page', $key]) as $prevKey => $prevVal)
                             @if (mb_strlen($prevVal))
                                 <input type="hidden" name="{{ $prevKey }}" value="{{ $prevVal }}"/>
                             @endif
