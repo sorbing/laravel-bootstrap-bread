@@ -83,7 +83,7 @@
             @foreach($columns as $key)
                 <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
-                <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
+                <?php if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) { continue; } ?>
                 <?php $order = (request('order') == "-$key") ? $key : "-$key"; ?>
                 <?php $header = !empty($column['name']) ? $column['name'] : ucwords(str_replace(['_', '.'], ' ', $key)); ?>
                 <th title="{{ data_get($column, 'title') }}" class="text-center {{ $colClass }}">
@@ -106,7 +106,7 @@
             @foreach($columns as $key)
                 <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
-                <?php if (!$column || data_get($column, 'hide')) { continue; } ?>
+                <?php if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) { continue; } ?>
                 <td class="{{ $colClass }}" style="margin: 0; padding: 0;">
                     <form name="filter" action="{{ route("$prefix.index") }}" method="get">
                         <input type="hidden" name="order" value="{{ request('order') }}" />
@@ -126,6 +126,7 @@
             </td>
         </tr>
     </thead>
+
     @if ($paginator->total())
     <tbody>
     @foreach($paginator as $item)
@@ -137,7 +138,7 @@
                     $colClass = "bread-col-" . str_replace('.', '-', $key);
                     $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null;
 
-                    if (!$column || data_get($column, 'hide')) { continue; }
+                    if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) { continue; }
 
                     $value = data_get($item, $key, '');
                     $transformer = !empty($column['transformer']) ? $column['transformer'] : null;
@@ -212,14 +213,14 @@
             @endforeach
             <td class="bread-actions">
                 <div>
+                    @if (!empty($actions))
                     <div class="d-inline-block bread-actions-custom">
-
                         <div class="dropdown"> {{--float-md-right breadMassActionsWrap--}}
                             <button class="btn btn-primary dropdown-toggle" id="breadCustomActionsToggler{{ $id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 ☘{{-- ⚙ --}}
                             </button>
                             <div class="dropdown-menu" aria-labelledby="breadCustomActionsToggler{{ $id }}" style="right: 5px; left: auto;">
-                                @if (!empty($actions) && is_array($actions))
+                                @if (is_array($actions))
                                     @foreach($actions as $action)
                                         <div class="dropdown-item">
                                         @if (is_array($action))
@@ -239,6 +240,8 @@
                             </div>
                         </div>
                     </div>
+                    @endif
+
                     <div class="d-inline-block bread-actions-default">
                         <a href="{{ route("$prefix.edit", $id) }}" class="btn btn-sm btn-outline-primary">✎</a>
 

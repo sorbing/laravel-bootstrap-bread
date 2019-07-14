@@ -47,7 +47,7 @@ trait BreadControllerTrait
         $model = $this->breadDetectModel();
 
         if ($model) {
-            $query = $model;
+            $query = $model->newQuery();
         } else {
             $query = \DB::table($table);
         }
@@ -167,20 +167,21 @@ trait BreadControllerTrait
         $columns = !empty($this->breadColumns) ? $this->breadColumns : \Schema::getColumnListing($this->breadTable());
 
         $columns = array_flip($columns);
+        $columns = array_fill_keys(array_keys($columns), []); // @note Fill `array` as default value instead index
 
         return $columns;
     }
 
     protected function breadColumnsSettingsBrowse()
     {
-        return $this->breadColumns();
+        return $this->breadColumnsDefaultBrowse();
     }
 
+    // @todo Переименовать более конкретно
     protected function breadColumnsDefaultBrowse(): array
     {
-        //$defaultColumns = array_keys($this->breadColumnsSettingsBrowse());
         $defaultColumns = [];
-        foreach ($this->breadColumnsSettingsBrowse() as $key => $columnSettings) {
+        foreach ($this->breadColumns() as $key => $columnSettings) {
             if (!data_get($columnSettings, 'hide')) {
                 $defaultColumns[] = $key;
             }
@@ -191,8 +192,10 @@ trait BreadControllerTrait
 
     protected function breadColumnsDisplayingBrowse()
     {
-        if (!$columns = request('_columns')) {
-            return $this->breadColumnsDefaultBrowse();
+        $columns = request('_columns');
+
+        if (!$columns) {
+            return array_keys($this->breadColumnsSettingsBrowse());
         }
 
         if (!is_array($columns)) {
@@ -369,6 +372,7 @@ trait BreadControllerTrait
         $data = request()->except(['id', 'created_at', 'updated_at', '_token', '_method', '_prev_index_url']);
 
         $query = $this->breadQuery();
+
         if ($query instanceof \Illuminate\Database\Query\Builder) {
             $id = $query->insertGetId($data);
         } else if ($query instanceof \Illuminate\Database\Eloquent\Builder) {
