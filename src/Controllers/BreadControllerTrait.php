@@ -162,7 +162,7 @@ trait BreadControllerTrait
         return $filters;
     }
 
-    protected function breadColumns()
+    protected function breadColumns() // @todo Rename to breadColumnsSettings
     {
         $columns = !empty($this->breadColumns) ? $this->breadColumns : \Schema::getColumnListing($this->breadTable());
 
@@ -174,9 +174,9 @@ trait BreadControllerTrait
 
     protected function breadColumnsSettingsBrowse()
     {
-        return $this->breadColumnsDefaultBrowse();
+        return array_only($this->breadColumns(), $this->breadColumnsDisplayingBrowse());
     }
-
+    
     // @todo Переименовать более конкретно
     protected function breadColumnsDefaultBrowse(): array
     {
@@ -195,7 +195,7 @@ trait BreadControllerTrait
         $columns = request('_columns');
 
         if (!$columns) {
-            return array_keys($this->breadColumnsSettingsBrowse());
+            return $this->breadColumnsDefaultBrowse();
         }
 
         if (!is_array($columns)) {
