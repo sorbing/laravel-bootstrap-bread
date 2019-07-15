@@ -4,6 +4,7 @@ namespace Sorbing\Bread\Controllers;
 
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
+//use function GuzzleHttp\Psr7\parse_query;
 
 trait BreadControllerTrait
 {
@@ -114,29 +115,15 @@ trait BreadControllerTrait
         }
 
         foreach ($filters as $key => $val) {
-            if (strpos($val, '~') === 0) {
-                $val = trim($val, '~');
-                $query->where($key, 'LIKE', "%$val%");
-            } elseif (str_contains($val, ['null'])) {
-                if (str_contains($val, ['not', '!'])) {
-                    $query->whereNotNull($key);
-                } else {
-                    $query->whereNull($key);
-                }
-            } elseif (str_contains($val, ['distinct', 'unique'])) {
-                // @todo How to implement it?
-                //$query->distinct();
-                //$query->addSelect("DISTINCT $key");
-            } elseif (str_contains($val, ['%', '*'])) {
-                $query->where($key, 'LIKE', str_replace('*', '%', $val));
-            } else {
-                $operation = '=';
-                if (preg_match('/^([!=<>]+)(.+)$/', $val, $match)) {
-                    $operation = $match[1];
-                    $val = $match[2];
-                }
+            if (strpos($key, '__') !== false) {
+                $relationName = explode('__', $key)[0];
 
-                $query->where($key, $operation, $val);
+                $query = $query->whereHas($relationName, function($q) use ($key, $val) {
+                    $relationColumn = explode('__', $key)[1];
+                    $this->breadHookApplyWhereQuery($q, $relationColumn, $val);
+                });
+            } else {
+                $this->breadHookApplyWhereQuery($query, $key, $val);
             }
         }
 
@@ -148,12 +135,59 @@ trait BreadControllerTrait
         return $query;
     }
 
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder|\Eloquent $query
+     * @param string $column
+     * @param mixed $value
+     * @return \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder|\Eloquent
+     */
+    protected function breadHookApplyWhereQuery($query, $column, $value)
+    {
+        // @todo Move to SomeHelper
+
+        if (strpos($value, '~') === 0) {
+            $value = trim($value, '~');
+            $query->where($column, 'LIKE', "%$value%");
+        } elseif (str_contains($value, ['null'])) {
+            if (str_contains($value, ['not', '!'])) {
+                $query->whereNotNull($column);
+            } else {
+                $query->whereNull($column);
+            }
+        } elseif (str_contains($value, ['distinct', 'unique'])) {
+            // @todo How to implement it?
+            //$query->distinct();
+            //$query->addSelect("DISTINCT $column");
+        } elseif (str_contains($value, ['%', '*'])) {
+            $query->where($column, 'LIKE', str_replace('*', '%', $value));
+        } else {
+            $operation = '=';
+            if (preg_match('/^([!=<>]+)(.+)$/', $value, $match)) {
+                $operation = $match[1];
+                $value = $match[2];
+            }
+
+            $query->where($column, $operation, $value);
+        }
+
+        return $query;
+    }
+
     protected function breadGetCurrentBrowseFilters()
     {
         $exceptFilters = ['page', 'per_page', 'order'];
+        $queryParams = request()->except($exceptFilters);
+
+        // @note Using `QUERY_STRING` because Laravel replaced the `.` to `_` in parameter name.
+        //$queryParams = parse_query($_SERVER['QUERY_STRING']);
+        //parse_str(@$_SERVER['QUERY_STRING'], $queryParams);
+        //echo "<pre>"; print_r($queryParams); echo "</pre>"; exit;
+        //$queryParams = array_diff_key($queryParams, array_flip($exceptFilters));
+
+        // \GuzzleHttp\Psr7\parse_query
 
         $filters = [];
-        foreach (request()->except($exceptFilters) as $key => $val) {
+        foreach ($queryParams as $key => $val) {
             if (preg_match('/^[a-z][a-z_\d]+$/', $key) && mb_strlen($val)) {
                 $filters[$key] = $val;
             }
@@ -176,7 +210,7 @@ trait BreadControllerTrait
     {
         return array_only($this->breadColumns(), $this->breadColumnsDisplayingBrowse());
     }
-    
+
     // @todo Переименовать более конкретно
     protected function breadColumnsDefaultBrowse(): array
     {

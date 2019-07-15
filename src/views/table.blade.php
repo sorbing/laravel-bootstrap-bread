@@ -105,7 +105,7 @@
             <td></td>
             @foreach($columns as $key)
                 <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
-                <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
+                <?php $column = key_exists($key, $columns_settings) ? $columns_settings[$key] : null; ?>
                 <?php if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) { continue; } ?>
                 <td class="{{ $colClass }}" style="margin: 0; padding: 0;">
                     <form name="filter" action="{{ route("$prefix.index") }}" method="get">
@@ -116,7 +116,7 @@
                                 <input type="hidden" name="{{ $prevKey }}" value="{{ $prevVal }}"/>
                             @endif
                         @endforeach
-                        <?php $disabled = strpos($key, '.') ? 'disabled' : ''; ?>
+                        <?php $disabled = '';//strpos($key, '.') ? 'disabled' : ''; ?>
                         <input type="text" class="form-control form-control-sm" {{ $disabled }} name="{{ $key }}" value="{{ request($key) }}" autocomplete="off"/>
                     </form>
                 </td>
@@ -141,6 +141,13 @@
                     if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) { continue; }
 
                     $value = data_get($item, $key, '');
+
+                    if (strpos($key, '__') !== false) {
+                        $relationName = explode('__', $key)[0];
+                        // @note Illuminate\Database\Eloquent\Collection|mixed
+                        $value = data_get($item, $relationName);
+                    }
+
                     $transformer = !empty($column['transformer']) ? $column['transformer'] : null;
                     $prepareTemplate = !empty($column['prepare']) ? $column['prepare'] : null;
                     if ($prepareTemplate) {
