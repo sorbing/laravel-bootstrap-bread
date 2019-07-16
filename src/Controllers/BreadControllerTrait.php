@@ -8,16 +8,19 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 trait BreadControllerTrait
 {
+    /** Database table name */
     protected function breadTable()
     {
         return $this->breadTable;
     }
 
+    /** Blade layout path, eq. `admin.layouts.layout` */
     protected function breadLayout()
     {
         return $this->breadLayout;
     }
 
+    /** Browse & Form title text */
     protected function breadTitle()
     {
         return ucfirst($this->breadTable());
@@ -41,7 +44,10 @@ trait BreadControllerTrait
         return isset($this->breadPerPage) ? $this->breadPerPage : $defaultPerPage;
     }
 
-    /** @return \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder */
+    /**
+     * Common database query for get rows/models
+     * @return \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder
+     */
     protected function breadQuery()
     {
         $table = $this->breadTable();
@@ -57,6 +63,7 @@ trait BreadControllerTrait
     }
 
     /**
+     * Trying find & make Model in \App or \App\Models namespaces
      * @return null|\Illuminate\Database\Eloquent\Model
      */
     protected function breadDetectModel()
@@ -98,6 +105,10 @@ trait BreadControllerTrait
         return $readableName;
     }
 
+    /**
+     * Query for Browse route (table page)
+     * @return \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder
+     */
     protected function breadQueryBrowse()
     {
         return $this->breadQuery();
@@ -178,13 +189,15 @@ trait BreadControllerTrait
         $exceptFilters = ['page', 'per_page', 'order'];
         $queryParams = request()->except($exceptFilters);
 
-        // @note Using `QUERY_STRING` because Laravel replaced the `.` to `_` in parameter name.
+        // @note Using `QUERY_STRING` because Laravel replaced the `.` special chars to `_` for GET parameter name.
         //$queryParams = parse_query($_SERVER['QUERY_STRING']);
+
+        // @note Function `parse_str()` also replaced the `.` for GET parameter name
         //parse_str(@$_SERVER['QUERY_STRING'], $queryParams);
-        //echo "<pre>"; print_r($queryParams); echo "</pre>"; exit;
         //$queryParams = array_diff_key($queryParams, array_flip($exceptFilters));
 
-        // \GuzzleHttp\Psr7\parse_query
+        // @note Guzzle function `parse_query()` not replaced a `.` char for GET parameter name
+        // $queryParams = \GuzzleHttp\Psr7\parse_query()
 
         $filters = [];
         foreach ($queryParams as $key => $val) {
@@ -196,26 +209,52 @@ trait BreadControllerTrait
         return $filters;
     }
 
-    protected function breadColumns() // @todo Rename to breadColumnsSettings
+    /**
+     * Columns settings only (keyed array). It method only configured all available columns (not displayed all it's columns).
+     * @return array Schema: ['column' => ['name' => 'Column Name', 'width' => '120', '']]
+     */
+    protected function breadColumnsSettings()
     {
         $columns = !empty($this->breadColumns) ? $this->breadColumns : \Schema::getColumnListing($this->breadTable());
 
         $columns = array_flip($columns);
         $columns = array_fill_keys(array_keys($columns), []); // @note Fill `array` as default value instead index
 
+        if (key_exists('created_at', $columns) && $columns['created_at'] == []) {
+            $columns['created_at'] = ['name'  => 'Created At', 'width' => '100'];
+        }
+
+        if (key_exists('updated_at', $columns) && $columns['updated_at'] == []) {
+            $columns['updated_at'] = ['name'  => 'Updated At', 'width' => '100'];
+        }
+
+        // @note Examples:
+        // 'title'       => 'The tip/hint text'
+        // 'align'       => 'left',
+        // 'prepare'     => '{{$id}} {{$key}} {{ $value }} {{ $item->someProp }} {{ $item->someMethod() }} {{route('admin.<entity>.show', $id)}}', // @note Blade or PHP template.
+        // 'template'    => '<?php foreach() ($value as $el) { /* some action */ }', // @note Blade or PHP template.
+        // 'transformer' => 'card:thumbnail,value,href(),firstCachedImage',
+        // 'isEditable'  => true, # - ?
+
+        // @note Use the `__` delimiter for correctly used filtering by relation__field, ex. `roles__name` (for users bread table); `tags__id` for post tags..
+        // 'labels__name' => ['name' => 'Labels', 'width' => 170, 'template' => '{{ implode(', ' $item->labels->pluck('name')->all()) }}'
+
         return $columns;
     }
 
     protected function breadColumnsSettingsBrowse()
     {
-        return array_only($this->breadColumns(), $this->breadColumnsDisplayingBrowse());
+        return array_only($this->breadColumnsSettings(), $this->breadColumnsDisplayingBrowse());
     }
 
-    // @todo Переименовать более конкретно
-    protected function breadColumnsDefaultBrowse(): array
+    /**
+     * Plain array list of the displaying columns for Browse and Form
+     * @return array
+     */
+    protected function breadColumnsDisplayingDefault(): array
     {
         $defaultColumns = [];
-        foreach ($this->breadColumns() as $key => $columnSettings) {
+        foreach ($this->breadColumnsSettings() as $key => $columnSettings) {
             if (!data_get($columnSettings, 'hide')) {
                 $defaultColumns[] = $key;
             }
@@ -224,12 +263,17 @@ trait BreadControllerTrait
         return $defaultColumns;
     }
 
+    /**
+     * Plain array list of the displaying columns for Browse only
+     * @return array
+     */
     protected function breadColumnsDisplayingBrowse()
     {
         $columns = request('_columns');
 
         if (!$columns) {
-            return $this->breadColumnsDefaultBrowse();
+            // @todo Нужно брать колонки из `breadColumnsSettingsBrowse`, но этот метод может циклично запросить список отображаемых колонок
+            return $this->breadColumnsDisplayingDefault();
         }
 
         if (!is_array($columns)) {
@@ -246,7 +290,7 @@ trait BreadControllerTrait
 
     protected function breadColumnsSettingsForm()
     {
-        return array_diff_key($this->breadColumns(), array_flip(['id', 'created_at', 'updated_at']));
+        return array_diff_key($this->breadColumnsSettings(), array_flip(['id', 'created_at', 'updated_at']));
     }
 
     protected function breadActionsBrowse()
