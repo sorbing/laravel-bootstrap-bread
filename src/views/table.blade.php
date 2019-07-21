@@ -165,7 +165,7 @@
                         <?php
                             $cardThumbnail = data_get($item, $match[1]);
                             // @todo Сервиса ImageManager здесь быть не должно. Закончить функционал `prepare`
-                            $cardThumbnail = $cardThumbnail ? app('ImageManager')->cache($cardThumbnail, 'x120') : '//placehold.jp/48x48.png';
+                            $cardThumbnail = $cardThumbnail ? app('ImageManager')->cachedOrLazyImageUrl($cardThumbnail, '120x120') : '//placehold.jp/48x48.png';
 
                             $cardText = data_get($item, $match[2], $value); // @todo Пока только для позиции card:text по дефолту отображается $value
 
