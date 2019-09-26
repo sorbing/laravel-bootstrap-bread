@@ -23,6 +23,12 @@ trait BreadControllerTrait
     /** Browse & Form title text */
     protected function breadTitle()
     {
+        //return ucfirst($this->breadTable()); // @note Old logic
+
+        if (!empty($this->breadTitle)) {
+            return $this->breadTitle;
+        }
+
         return ucfirst($this->breadTable());
     }
 
@@ -51,13 +57,7 @@ trait BreadControllerTrait
     protected function breadQuery()
     {
         $table = $this->breadTable();
-        $model = $this->breadDetectModel();
-
-        if ($model) {
-            $query = $model->newQuery();
-        } else {
-            $query = \DB::table($table);
-        }
+        $query = app('bread')->makeDatabaseQueryInstance($table);
 
         return $query;
     }
@@ -69,14 +69,7 @@ trait BreadControllerTrait
     protected function breadDetectModel()
     {
         $table = $this->breadTable();
-
-        $model = null;
-        if (class_exists($modelClass = '\\App\\' . studly_case(str_singular($table)))) {
-            $model = new $modelClass; // @note Maybe $modelClass::newModelInstance() ?
-        } elseif (class_exists($modelClass = '\\App\\Models\\' . studly_case(str_singular($table)))) {
-            $model = new $modelClass; // @note Maybe $modelClass::newModelInstance() ?
-        }
-
+        $model = app('bread')->detectModelByTable($table);
         return $model;
     }
 
@@ -355,6 +348,8 @@ trait BreadControllerTrait
     /**
      * @param \Eloquent|null $query
      * @return \Illuminate\Contracts\Routing\ResponseFactory|\Symfony\Component\HttpFoundation\Response
+     *
+     * @todo Move to service `bread_csv_exporter`
      */
     protected function breadExport($query = null)
     {
@@ -407,6 +402,10 @@ trait BreadControllerTrait
         $query = $this->breadQueryBrowse();
         $this->breadQueryBrowseFiltered($query);
 
+        $displayingColumns = $this->breadColumnsDisplayingBrowse();
+
+        $optionsRegistry = app('bread')->loadOptionsRegistryForIdentificationColumns($displayingColumns);
+
         if (request('_export')) {
             return $this->breadExport($query);
         }
@@ -419,8 +418,9 @@ trait BreadControllerTrait
             'title' => $this->breadTitle(),
             'layout' => $this->breadLayout(),
             'prefix' => $this->breadRouteNamePrefix(),
-            'columns' => $this->breadColumnsDisplayingBrowse(),
+            'columns' => $displayingColumns,
             'columns_settings' => $this->breadColumnsSettingsBrowse(),
+            'options_registry' => $optionsRegistry,
             'actions' => $this->breadActionsBrowse(),
             'mass_actions' => $this->breadMassActionsBrowse(),
             'empty_content' => $this->breadEmptyBrowseContent(),

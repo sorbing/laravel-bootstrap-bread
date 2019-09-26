@@ -1,3 +1,9 @@
+<?php
+/** @var $key string */
+/** @var $columns_settings array */
+/** @var $options_registry array */
+?>
+
 @push('bread_assets')
     <style>
         .table.bread-table th, .table.bread-table td { padding: 0.2rem 0.5rem; }
@@ -130,7 +136,10 @@
     @if ($paginator->total())
     <tbody>
     @foreach($paginator as $item)
-        <?php $id = $item->id; ?>
+        <?php
+            /** @var $item \Illuminate\Database\Eloquent\Model */
+            $id = $item->id;
+        ?>
         <tr>
             <td class="id"><input type="checkbox" name="id[]" value="{{ $id }}" onchange="window.toggleBreadIdCheckbox(this)"/></td>
             @foreach($columns as $key)
@@ -140,18 +149,35 @@
 
                     if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) { continue; }
 
-                    $value = data_get($item, $key, '');
+                    $value = $v = data_get($item, $key, '');
 
                     if (strpos($key, '__') !== false) {
                         $relationName = explode('__', $key)[0];
                         // @note Illuminate\Database\Eloquent\Collection|mixed
-                        $value = data_get($item, $relationName);
+                        $value = $v = data_get($item, $relationName);
                     }
+
+                    $vNamed = null;
+                    if (key_exists($key, $options_registry)) {
+                        $vOptions = $options_registry[$key];
+                        $vId = $v;
+                        if ($vOptions instanceof \Illuminate\Support\Collection) {
+                            $vOption = $vOptions->get($vId); // @note Requred the keyBy('id')
+                            //if ($vOption instanceof Illuminate\Database\Eloquent) {}
+                            $vNamed = $vOption ? data_get($vOption, 'name', data_get($vOption, 'title')) : null;
+                        } else if (is_array($vOptions)) {
+                            // @todo Get value from indexed or item list array
+                        }
+                    }
+
+                    // IdentificationColumns
+
+                    //$mappedOptionValue = array_ // $options_registry
 
                     $transformer = !empty($column['transformer']) ? $column['transformer'] : null;
                     $prepareTemplate = !empty($column['prepare']) ? $column['prepare'] : null;
                     if ($prepareTemplate) {
-                        $value = app('bread')->renderBlade($prepareTemplate, ['key' => $key, 'id' => $id, 'value' => $value, 'column' => $column, 'item' => $item]);
+                        $value = $v = app('bread')->renderBlade($prepareTemplate, ['key' => $key, 'id' => $id, 'value' => $value, 'v' => $v, 'column' => $column, 'item' => $item]);
                     }
                 ?>
 
@@ -215,7 +241,7 @@
                         <pre style="text-align: left">{!! $decodedValue ?: $value !!}</pre>
                     </td>
                 @else
-                    <td class="{{ $colClass }}">{!! $value !!}</td>
+                    <td class="{{ $colClass }}">{!! $vNamed ?: $v !!}</td>
                 @endif
             @endforeach
             <td class="bread-actions">
