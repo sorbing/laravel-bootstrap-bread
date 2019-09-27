@@ -53,6 +53,20 @@
                     </div>
                 </div>
 
+                @if(!empty($preset_filters) && count($preset_filters))
+                    <div class="row bread-preset-filters-wrap">
+                        <div class="col-sm-12">
+                            @foreach($preset_filters as $name => $preset_filter)
+                                {{--<a href="{{ route("$prefix.index")."?".data_get($preset_filter, 'query') }}" class="badge badge-secondary">{{ $name }}</a>--}}
+                                <a href="{{ route("$prefix.index")."?".data_get($preset_filter, 'query') }}">{{ $name }}</a>
+                                @if (!$loop->last)
+                                    <span style="margin: 0 5px; color: #999;">|</span>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 @include('bread::table', [
                     'paginator' => $paginator,
                     'columns' => $columns,

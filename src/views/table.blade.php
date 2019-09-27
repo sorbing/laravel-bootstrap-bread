@@ -20,9 +20,9 @@
         .table.bread-table th:hover .sortAsc, .table.bread-table th:hover .sortDesc { display: inline-block; }
 
         /* Bread card widget popup big image */
-        .table.bread-table .bread-card-widget .bread-thumbnail-popup { display: none; margin-top: -160px; }
-        .table.bread-table .bread-card-widget .bread-thumbnail:hover ~ .bread-thumbnail-popup { display: block !important; }
-        .table.bread-table .bread-card-widget .bread-thumbnail-popup:hover { display: block !important; }
+        .table.bread-table .bread-thumbnail-popup { display: none; margin-top: -160px; }
+        .table.bread-table .bread-thumbnail:hover ~ .bread-thumbnail-popup { display: block !important; }
+        .table.bread-table .bread-thumbnail-popup:hover { display: block !important; }
 
         @foreach($columns as $key)
             <?php
@@ -67,20 +67,6 @@
     </script>
 @endpush
 
-@if(!empty($preset_filters) && count($preset_filters))
-    <div class="row bread-preset-filters-wrap">
-        <div class="col-sm-12">
-            @foreach($preset_filters as $name => $preset_filter)
-                {{--<a href="{{ route("$prefix.index")."?".data_get($preset_filter, 'query') }}" class="badge badge-secondary">{{ $name }}</a>--}}
-                <a href="{{ route("$prefix.index")."?".data_get($preset_filter, 'query') }}">{{ $name }}</a>
-                @if (!$loop->last)
-                    <span> | </span>
-                @endif
-            @endforeach
-        </div>
-    </div>
-@endif
-
 <table class="table bread-table">
     <thead>
         <tr>
@@ -93,7 +79,7 @@
                 <?php $order = (request('order') == "-$key") ? $key : "-$key"; ?>
                 <?php $header = !empty($column['name']) ? $column['name'] : ucwords(str_replace(['_', '.'], ' ', $key)); ?>
                 <th title="{{ data_get($column, 'title') }}" class="text-center {{ $colClass }}">
-                    @if (strpos($key, '.'))
+                    @if (strpos($key, '.') || data_get($column, 'not_sortable'))
                         {{ $header }}
                     @else
                         <div class="sorting-cell-inner">
@@ -122,7 +108,8 @@
                                 <input type="hidden" name="{{ $prevKey }}" value="{{ $prevVal }}"/>
                             @endif
                         @endforeach
-                        <?php $disabled = '';//strpos($key, '.') ? 'disabled' : ''; ?>
+                        <?php /*$disabled = strpos($key, '.') ? 'disabled' : '';*/ ?>
+                        <?php $disabled = data_get($column, 'not_filterable') ? 'disabled' : ''; ?>
                         <input type="text" class="form-control form-control-sm" {{ $disabled }} name="{{ $key }}" value="{{ request($key) }}" autocomplete="off"/>
                     </form>
                 </td>
@@ -220,6 +207,28 @@
                                 </div>
                             </div>
                         </td>
+                    @elseif (preg_match('/thumbnails:(.+)/', $transformer, $match))
+                        <td class="{{ $colClass }}">
+                            <?php
+                                $delimiter = $match[1];
+                                $images = explode($delimiter, $v);
+                            ?>
+
+                            @foreach($images as $imageUrl)
+                                <?php
+                                    /* @var $imageUrl */
+                                    $imageUrl = trim($imageUrl);
+                                    $cachedImage = app('ImageManager')->cachedOrLazyImageUrl($imageUrl);
+                                    $cachedThumb = app('ImageManager')->cachedOrLazyImageUrl($imageUrl, '120x120') ?: '//placehold.jp/48x48.png';
+                                ?>
+                                    <div class="position-relative d-inline-block">
+                                        <a href="{{ $cachedImage }}" target="_blank"> {{-- class="d-inline-block position-relative" --}}
+                                            <img src="{{ $cachedThumb }}" alt="" width="48" class="bread-thumbnail" />
+                                            <img src="{{ $cachedImage }}" class="bread-thumbnail-popup" style="position: absolute; bottom: 50px; left: -310px; width: 360px; z-index: 999;" />
+                                        </a>
+                                    </div>
+                            @endforeach
+                        </td>
                     @elseif (preg_match('/link:(.+)/', $transformer, $match))
                         <td class="{{ $colClass }}">{!! link_to($match[1], $value) !!}</td>
                     @elseif (preg_match('/date:(.+)/', $transformer, $match))
@@ -241,7 +250,9 @@
                         <pre style="text-align: left">{!! $decodedValue ?: $value !!}</pre>
                     </td>
                 @else
-                    <td class="{{ $colClass }}">{!! $vNamed ?: $v !!}</td>
+                    <td class="{{ $colClass }}" @if($vNamed) title="ID: {{ $v }}" @endif>
+                        {!! $vNamed ?: $v !!}
+                    </td>
                 @endif
             @endforeach
             <td class="bread-actions">

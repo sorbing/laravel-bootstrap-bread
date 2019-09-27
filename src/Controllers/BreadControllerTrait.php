@@ -23,8 +23,6 @@ trait BreadControllerTrait
     /** Browse & Form title text */
     protected function breadTitle()
     {
-        //return ucfirst($this->breadTable()); // @note Old logic
-
         if (!empty($this->breadTitle)) {
             return $this->breadTitle;
         }
@@ -139,6 +137,7 @@ trait BreadControllerTrait
         return $query;
     }
 
+    // @todo Move to BreadService and ModelSmartFiltersTrait
     /**
      * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder|\Eloquent $query
      * @param string $column
@@ -147,8 +146,6 @@ trait BreadControllerTrait
      */
     protected function breadHookApplyWhereQuery($query, $column, $value)
     {
-        // @todo Move to SomeHelper
-
         if (strpos($value, '~') === 0) {
             $value = trim($value, '~');
             $query->where($column, 'LIKE', "%$value%");
@@ -426,6 +423,8 @@ trait BreadControllerTrait
             'empty_content' => $this->breadEmptyBrowseContent(),
             'preset_filters' => $this->breadPresetFiltersBrowse(),
         ];
+
+        //echo "<pre>"; print_r('End'); echo "</pre>"; exit;
 
         return view('bread::browse', $data);
     }
