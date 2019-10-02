@@ -9,6 +9,8 @@
         .table.bread-table th, .table.bread-table td { padding: 0.2rem 0.5rem; }
         .bread-table .bread-actions * { white-space: nowrap !important; }
         .bread-table .bread-actions > div { float: right; }
+        .bread-table thead tr:nth-child(1) th { vertical-align: middle; }
+        .bread-table tbody td { vertical-align: middle; }
         .bread-table tbody .btn { white-space: nowrap; padding: 5px 10px; margin: 0 0 0 2px; }
         .breadMassActionsWrap .dropdown-item .btn { white-space: nowrap; }
 
@@ -64,18 +66,40 @@
                 });
             });
         };
+
+        window.applyBreadTableFiltersForm = function() {
+            let allowableHiddenParams = ['order', '_columns'];
+            let params = {};
+
+            document.querySelectorAll('.bread-table .filtering-form input').forEach(function(input) {
+                if (input.getAttribute('type') === 'hidden' && allowableHiddenParams.indexOf(input.name) === -1) return;
+                let val = (input.value || '').trim();
+                if (val) params[input.name] = val;
+            });
+
+            let q = Object.keys(params).map(function(p) {
+                return p + '=' + params[p];
+            }).join('&');
+
+            let url = document.querySelector('.bread-table .filtering-form').action;
+            url += '?' + q;
+
+            window.location = url;
+
+            return false;
+        };
     </script>
 @endpush
 
 <table class="table bread-table">
     <thead>
+        {{-- Titles --}}
         <tr>
-            {{-- Title --}}
             <th><input type="checkbox" class="inputToggleCheckboxes" onchange="window.toggleAllBreadIdsCheckboxes(this)" /></th>
             @foreach($columns as $key)
                 <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
-                <?php if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) { continue; } ?>
+                <?php if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) continue; ?>
                 <?php $order = (request('order') == "-$key") ? $key : "-$key"; ?>
                 <?php $header = !empty($column['name']) ? $column['name'] : ucwords(str_replace(['_', '.'], ' ', $key)); ?>
                 <th title="{{ data_get($column, 'title') }}" class="text-center {{ $colClass }}">
@@ -83,24 +107,25 @@
                         {{ $header }}
                     @else
                         <div class="sorting-cell-inner">
-                            <a href="{{ route("$prefix.index") }}?order={{ $order }}&{{ query_except('order') }}">{{ $header }}</a>
-                            <a href="{{ route("$prefix.index") }}?order={{ trim($order, '-') }}&{{ query_except('order') }}" class="sortAsc" title="По возрастанию (сначала меньшие)">▵</a>
-                            <a href="{{ route("$prefix.index") }}?order=-{{ trim($order, '-') }}&{{ query_except('order') }}" class="sortDesc" title="По убыванию (сначала большие)">▿</a>
+                            <a href="{{ route("$prefix.index") }}?order={{ $order }}&{{ urldecode(query_except('order')) }}">{{ $header }}</a>
+                            <a href="{{ route("$prefix.index") }}?order={{ trim($order, '-') }}&{{ urldecode(query_except('order')) }}" class="sortAsc" title="По возрастанию (сначала меньшие)">▵</a>
+                            <a href="{{ route("$prefix.index") }}?order=-{{ trim($order, '-') }}&{{ urldecode(query_except('order')) }}" class="sortDesc" title="По убыванию (сначала большие)">▿</a>
                         </div>
                     @endif
                 </th>
             @endforeach
             <th style="text-align: center">Actions</th>
         </tr>
+
+        {{-- Filters --}}
         <tr>
-            {{-- Filters --}}
             <td></td>
             @foreach($columns as $key)
                 <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
                 <?php $column = key_exists($key, $columns_settings) ? $columns_settings[$key] : null; ?>
                 <?php if (!key_exists($key, $columns_settings) || data_get($column, 'hide')) { continue; } ?>
                 <td class="{{ $colClass }}" style="margin: 0; padding: 0;">
-                    <form name="filter" action="{{ route("$prefix.index") }}" method="get">
+                    <form name="filter" action="{{ route("$prefix.index") }}" method="get" class="filtering-form" onsubmit="return window.applyBreadTableFiltersForm(); return false;" autocomplete="off">
                         <input type="hidden" name="order" value="{{ request('order') }}" />
                         {{--<input type="hidden" name="_confirmed_batch_action" value="{{ session('_confirmed_batch_action') }}"/>--}}
                         @foreach(request()->except(['order', 'page', $key]) as $prevKey => $prevVal)
@@ -110,12 +135,13 @@
                         @endforeach
                         <?php /*$disabled = strpos($key, '.') ? 'disabled' : '';*/ ?>
                         <?php $disabled = data_get($column, 'not_filterable') ? 'disabled' : ''; ?>
-                        <input type="text" class="form-control form-control-sm" {{ $disabled }} name="{{ $key }}" value="{{ request($key) }}" autocomplete="off"/>
+                        <input type="text" class="form-control form-control-sm" {{ $disabled }} name="{{ $key }}" value="{{ request($key) }}" autocomplete="off" /> {{-- autocomplete="new-password" --}}
                     </form>
                 </td>
             @endforeach
             <td style="margin: 0; padding: 0;">
                 {{--<input type="submit" class="btn btn-sm btn-primary" style="margin: 0; padding: 6px 12px;" value="Фильтр"/>--}}
+                {{--<button type="submit" class="btn btn-sm btn-primary" style="margin: 0; padding: 6px 12px;">Применить</button>--}}
             </td>
         </tr>
     </thead>
@@ -178,7 +204,7 @@
                         <?php
                             $cardThumbnail = data_get($item, $match[1]);
                             // @todo Сервиса ImageManager здесь быть не должно. Закончить функционал `prepare`
-                            $cardThumbnail = $cardThumbnail ? app('ImageManager')->cachedOrLazyImageUrl($cardThumbnail, '120x120') : '//placehold.jp/48x48.png';
+                            //$cardThumbnail = $cardThumbnail ? app('ImageManager')->cachedOrLazyImageUrl($cardThumbnail, '120x120') : '//placehold.jp/48x48.png';
 
                             $cardText = data_get($item, $match[2], $value); // @todo Пока только для позиции card:text по дефолту отображается $value
 
@@ -300,9 +326,3 @@
     </tbody>
     @endif
 </table>
-
-@if ($paginator->total())
-    {{ $paginator->appends(request()->all())->links() }}
-@else
-    {{ $empty_content or '' }}
-@endif

@@ -37,5 +37,7 @@ Implement the Model method `getPlainOptions()` that return the options array `['
 
 ### Roadmap
 
++ ✔ 2019-10-02 Refactoring the "smart where-filters" - `\Sorbing\Bread\Controllers\BreadControllerTrait::breadHookApplyWhereQuery`.
++ ✔ 2019-10-02 Re-implement the filtration logic in browse table on javascript. Middle vertical-align in browse table. 
 + ✔ 2019-05-22 Implement the BreadControllerTrait::breadDetectModel() - smart detecting a Model class in \App\ModelName or \App\Models\ModelName.
 

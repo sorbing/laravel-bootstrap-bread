@@ -53,15 +53,24 @@
                     </div>
                 </div>
 
-                @if(!empty($preset_filters) && count($preset_filters))
+                @if (!empty($preset_filters) && count($preset_filters))
                     <div class="row bread-preset-filters-wrap">
                         <div class="col-sm-12">
                             @foreach($preset_filters as $name => $preset_filter)
-                                {{--<a href="{{ route("$prefix.index")."?".data_get($preset_filter, 'query') }}" class="badge badge-secondary">{{ $name }}</a>--}}
-                                <a href="{{ route("$prefix.index")."?".data_get($preset_filter, 'query') }}">{{ $name }}</a>
-                                @if (!$loop->last)
-                                    <span style="margin: 0 5px; color: #999;">|</span>
-                                @endif
+                                <?php
+                                    $preset_query = rtrim('?' . data_get($preset_filter, 'query'), '?');
+                                    $preset_url = route("$prefix.index") . $preset_query;
+                                ?>
+                                {{--<a href="{{ $preset_url }}" class="badge badge-secondary">{{ $name }}</a>--}}
+                                <a href="{{ $preset_url }}">
+                                    @if ($preset_query && mb_stripos(urldecode(request()->fullUrl()), $preset_query))
+                                        <b>{{ $name }}</b>
+                                    @else
+                                        {{ $name }}
+                                    @endif
+                                </a>
+
+                                @if (!$loop->last) <span style="margin: 0 5px; color: #999;">|</span> @endif
                             @endforeach
                         </div>
                     </div>
@@ -73,6 +82,14 @@
                     'columns_settings' => $columns_settings,
                     'prefix' => $prefix
                 ])
+
+                @if ($paginator->total())
+                    {!! urldecode($paginator->appends(request()->all())->links()) !!}
+                    {{-- @note That used a urlencode, ex. `,` to `%2C`  --}}
+                    {{-- $paginator->appends(request()->all())->links() --}}
+                @else
+                    {{ $empty_content or '' }}
+                @endif
             </div>
         </div>
     </div>

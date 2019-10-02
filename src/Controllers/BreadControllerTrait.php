@@ -109,6 +109,7 @@ trait BreadControllerTrait
      * @param \Illuminate\Database\Eloquent\Builder|\Eloquent $query
      * @param array $filters Optional
      * @return \Illuminate\Database\Eloquent\Builder|\Eloquent
+     * @throws \Exception
      */
     protected function breadQueryBrowseFiltered($query, array $filters = [])
     {
@@ -119,11 +120,18 @@ trait BreadControllerTrait
         foreach ($filters as $key => $val) {
             if (strpos($key, '__') !== false) {
                 $relationName = explode('__', $key)[0];
+                $relationColumn = explode('__', $key)[1];
 
-                $query = $query->whereHas($relationName, function($q) use ($key, $val) {
-                    $relationColumn = explode('__', $key)[1];
-                    $this->breadHookApplyWhereQuery($q, $relationColumn, $val);
-                });
+                if (mb_strpos($val, '!') === 0) {
+                    $val = trim($val, '!');
+                    $query = $query->whereDoesntHave($relationName, function($q) use ($relationColumn, $val) {
+                        $this->breadHookApplyWhereQuery($q, $relationColumn, $val);
+                    });
+                } else {
+                    $query = $query->whereHas($relationName, function($q) use ($relationColumn, $val) {
+                        $this->breadHookApplyWhereQuery($q, $relationColumn, $val);
+                    });
+                }
             } else {
                 $this->breadHookApplyWhereQuery($query, $key, $val);
             }
@@ -138,38 +146,48 @@ trait BreadControllerTrait
     }
 
     // @todo Move to BreadService and ModelSmartFiltersTrait
+
     /**
      * @param \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder|\Eloquent $query
      * @param string $column
      * @param mixed $value
      * @return \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder|\Eloquent
+     * @throws \Exception
      */
     protected function breadHookApplyWhereQuery($query, $column, $value)
     {
-        if (strpos($value, '~') === 0) {
+        if (mb_strpos($value, '~') === 0) {
             $value = trim($value, '~');
             $query->where($column, 'LIKE', "%$value%");
-        } elseif (str_contains($value, ['null'])) {
-            if (str_contains($value, ['not', '!'])) {
-                $query->whereNotNull($column);
-            } else {
-                $query->whereNull($column);
-            }
-        } elseif (str_contains($value, ['distinct', 'unique'])) {
-            // @todo How to implement it?
-            //$query->distinct();
-            //$query->addSelect("DISTINCT $column");
-        } elseif (str_contains($value, ['%', '*'])) {
-            $query->where($column, 'LIKE', str_replace('*', '%', $value));
-        } else {
-            $operation = '=';
-            if (preg_match('/^([!=<>]+)(.+)$/', $value, $match)) {
-                $operation = $match[1];
-                $value = $match[2];
-            }
-
+        } elseif (mb_strpos($value, '!~') === 0) {
+            $value = trim($value, '!~');
+            $query->where($column, 'NOT LIKE', "%$value%");
+        } elseif ($value == 'null' || $value == 'NULL') {
+            $query->whereNull($column);
+        } elseif (preg_match('/^(?:!|not)\s?null$/iu', $value)) {
+            $query->whereNotNull($column);
+        } elseif (mb_strpos($value, '*') === 0 && mb_strrpos($value, '*')+1 === mb_strlen($value)) { // @note Символ `%` нельзя передать в URL без urlencode
+            $value = trim($value, '*');
+            $query->where($column, 'LIKE', "%$value%");
+        } elseif (mb_strpos($value, '*') === 0) {
+            $value = trim($value, '*');
+            $query->where($column, 'LIKE', "%$value");
+        } elseif (mb_strrpos($value, '*')+1 === mb_strlen($value)) {
+            $value = trim($value, '*');
+            $query->where($column, 'LIKE', "$value%");
+        } else if (preg_match('/^([!=<>]{1,2})(.+)$/', $value, $m)) {
+            $operation = ($m[1] == '!') ? '!=' : $m[1];
+            $value = $m[2];
             $query->where($column, $operation, $value);
+        } else {
+            $query->where($column, '=', $value);
         }
+
+        // @todo How to implement it?
+        /*} elseif ($value == 'distinct' || $value == 'unique') {
+            throw new \Exception('Smart where query option `distinct` or `unique` not implemented!');
+            //$query->distinct();
+            //$query->addSelect("DISTINCT $column");*/
 
         return $query;
     }
