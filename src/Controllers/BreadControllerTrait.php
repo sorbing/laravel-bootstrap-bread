@@ -560,6 +560,7 @@ trait BreadControllerTrait
             //$affectedCount = $query->delete(); // @note Not works a Model::events()!
 
             $affectedCount = 0;
+
             foreach ($query->get() as $item) {
                 $isSuccess = $item->delete();
                 if ($isSuccess) {
@@ -583,10 +584,12 @@ trait BreadControllerTrait
 
             if ($count >= 10) { // $this->breadPerPage()
                 $confirmedRedirectUrl = str_replace('&_confirmed_batch_action', '', $previousUrl);
-                $confirmedRedirectUrl = $confirmedRedirectUrl . '&_confirmed_batch_action';// . http_build_query(['']);
-                //echo "<pre>"; print_r(request()->toArray()); echo "</pre>"; exit;
+                $confirmedRedirectUrl = $confirmedRedirectUrl . '&_confirmed_batch_action'; // . http_build_query(['']);
+                // @todo Check the previous affected rows count and real affected rows -  `_confirmed_batch_action={$count}`
                 if (!strpos($previousUrl, '_confirmed_batch_action')) {
-                    return redirect($confirmedRedirectUrl)->with(['warning' => sprintf('Batch action trying affected on %s items. Please, repeat this action for confirmed.', $count)]);
+                    return redirect($confirmedRedirectUrl)
+                        ->with(['warning' => sprintf('Batch action trying affected on %s items. Please, repeat this action for confirmed.', $count)])
+                        ->withInput(['bread_ids' => array_wrap(request('id'))]);
                 }
             }
 
@@ -597,7 +600,10 @@ trait BreadControllerTrait
             $callbackHttpResponse = $callbackQueryHandler($query, $browseRedirectResponse);
 
             if (!($callbackHttpResponse instanceof \Symfony\Component\HttpFoundation\Response)) {
-                return $browseRedirectResponse->with(['success' => '', 'error' => sprintf('Method %s expected returns as \Symfony\Component\HttpFoundation\Response, but %s given.', __METHOD__, get_class($callbackHttpResponse))]);
+                return $browseRedirectResponse->with([
+                    'success' => '',
+                    'error' => sprintf('Method %s expected returns as \Symfony\Component\HttpFoundation\Response, but %s given.', __METHOD__, get_class($callbackHttpResponse))
+                ]);
             }
 
             return $callbackHttpResponse;
@@ -617,6 +623,8 @@ trait BreadControllerTrait
 
         //$perPage = $this->breadPerPage();
         $query = $this->breadQueryBrowse();
+
+        //echo "<pre>"; print_r(request()->toArray()); echo "</pre>"; exit;
 
         if ($id > 0) {
             // @note Batch Action for one item

@@ -57,7 +57,7 @@
                 div.innerHTML = '';
             });
 
-            var checkedCheckboxes = [];
+            let checkedCheckboxes = [];
             document.querySelectorAll('.bread-table td.id input:checked').forEach(function(checkbox) {
                 //checkedCheckboxes.push(checkbox);
 
@@ -95,7 +95,9 @@
     <thead>
         {{-- Titles --}}
         <tr>
-            <th><input type="checkbox" class="inputToggleCheckboxes" onchange="window.toggleAllBreadIdsCheckboxes(this)" /></th>
+            <th>
+                <input type="checkbox" class="inputToggleCheckboxes" onchange="window.toggleAllBreadIdsCheckboxes(this)" />
+            </th>
             @foreach($columns as $key)
                 <?php $colClass = "bread-col-" . str_replace('.', '-', $key); ?>
                 <?php $column = isset($columns_settings[$key]) ? $columns_settings[$key] : null; ?>
@@ -154,7 +156,9 @@
             $id = $item->id;
         ?>
         <tr>
-            <td class="id"><input type="checkbox" name="id[]" value="{{ $id }}" onchange="window.toggleBreadIdCheckbox(this)"/></td>
+            <td class="id">
+                <input type="checkbox" name="id[]" value="{{ $id }}" onchange="window.toggleBreadIdCheckbox(this)" @if(in_array($id, $breadOldCheckedIds)) checked @endif />
+            </td>
             @foreach($columns as $key)
                 <?php
                     $colClass = "bread-col-" . str_replace('.', '-', $key);

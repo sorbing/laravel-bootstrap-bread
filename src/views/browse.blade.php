@@ -1,6 +1,8 @@
 @extends($layout)
 
 @section('content')
+    <?php $breadOldCheckedIds = array_wrap(request()->old('bread_ids')); ?>
+
     <div class="container-fluid container-bread-browse">
         <div class="row">
             <div class="col-sm-12 mx-auto">

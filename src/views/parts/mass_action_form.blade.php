@@ -22,6 +22,9 @@
     @endif
 
     <div class="breadMassActionFormIdsContainer d-none">
+        @foreach($breadOldCheckedIds as $checkedId)
+            <input type="hidden" name="id[]" value="{{ $checkedId }}" checked />
+        @endforeach
         {{-- <input type="hidden" name="id[]" value="" /> --}}
     </div>
     <input class="btn btn-block btn-primary" type="submit" value="{{ $name }}" />
