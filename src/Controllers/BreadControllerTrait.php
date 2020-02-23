@@ -8,6 +8,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 trait BreadControllerTrait
 {
+    /** @var \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder */
+    protected $query;
+
     /** Database table name */
     protected function breadTable()
     {
@@ -317,6 +320,7 @@ trait BreadControllerTrait
     protected function breadMassActionsBrowse()
     {
         $defaultMassActions = $this->breadMassActionsBrowseDefault();
+
         return $defaultMassActions;
     }
 
@@ -357,6 +361,7 @@ trait BreadControllerTrait
     protected function breadEmptyBrowseContent()
     {
         $content = ""; // Or use view: $content = view('', [])->render();
+
         return $content;
     }
 
@@ -416,6 +421,7 @@ trait BreadControllerTrait
     {
         $query = $this->breadQueryBrowse();
         $this->breadQueryBrowseFiltered($query);
+        $this->query = $query;
 
         $displayingColumns = $this->breadColumnsDisplayingBrowse();
 
