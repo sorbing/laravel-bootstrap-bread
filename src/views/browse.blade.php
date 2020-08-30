@@ -3,7 +3,7 @@
 @section('content')
     <?php $breadOldCheckedIds = array_wrap(request()->old('bread_ids')); ?>
 
-    <div class="container-fluid container-bread-browse">
+    <div class="container-fluid container-bread container-bread-browse">
         <div class="row">
             <div class="col-sm-12 mx-auto">
                 <div class="row">
@@ -24,16 +24,41 @@
                             <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>--}}
 
                             <style>
-                                .container-bread-browse .dropdown-toggle:focus ~ .dropdown-menu { display: block; }
-                                .container-bread-browse .dropdown .dropdown-menu:hover { display: block; }
+                                /* CSS */
+                                /*.container-bread-browse .dropdown-toggle:focus ~ .dropdown-menu { display: block; }
+                                .container-bread-browse .dropdown .dropdown-menu:hover { display: block; }*/
+
+                                /* JS */
+                                .container-bread-browse .dropdown-toggle.opened ~ .dropdown-menu { display: block; }
+
                                 .container-bread-browse .dropdown .dropdown-menu { padding: 0.15rem 0; }
                                 .container-bread-browse .dropdown .dropdown-menu .dropdown-item { padding: 0.15rem 0.3rem; }
                                 .container-bread-browse .dropdown .dropdown-menu .dropdown-item > * { display: block; width: 100%; }
-                                /*.container-bread-browse .dropdown:focus .dropdown-menu { display: block; }*/
                             </style>
+
+                            <script>
+                                // document.querySelector('.container-bread')
+                                document.addEventListener('click', function(e) {
+                                    let dropdown = e.target.closest('.breadDropdown');
+                                    let isInside = !!dropdown;
+
+                                    if (isInside) {
+                                        const toggle = e.target.closest('.dropdown-toggle'); //document.querySelector('#breadCustomActionsToggler466').closest('.dropdown-toggle')
+                                        const isClickOnToggle = !!toggle;
+                                        const isOpened = (toggle && toggle.classList.contains('opened'));
+                                        if (isClickOnToggle) {
+                                            isOpened ? toggle.classList.remove('opened') : toggle.classList.add('opened');
+                                        }
+                                    } else {
+                                        document.querySelectorAll('.breadDropdown .dropdown-toggle').forEach(el => {
+                                            el.classList.remove('opened');
+                                        });
+                                    }
+                                });
+                            </script>
                         @endpush
 
-                        <div class="dropdown float-md-right breadMassActionsWrap"> {{-- tabindex="0" --}}
+                        <div class="dropdown float-md-right breadDropdown breadMassActionsWrap"> {{-- tabindex="0" --}}
                             <button class="btn btn-primary dropdown-toggle" id="breadMassActionsToggler" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Mass actions
                             </button>
