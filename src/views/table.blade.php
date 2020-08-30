@@ -14,6 +14,8 @@
         .bread-table tbody .btn { white-space: nowrap; padding: 5px 10px; margin: 0 0 0 2px; }
         .breadMassActionsWrap .dropdown-item .btn { white-space: nowrap; }
 
+        .bread-actions-custom .dropdown-menu .dropdown-item .btn { width: 100%; }
+
         .table.bread-table th .sorting-cell-inner  { display: inline-block; position: relative; }
         .table.bread-table th .sorting-cell-inner .sortAsc  { display: inline-block; position: absolute; top: -2px; left: -10px; }
         .table.bread-table th .sorting-cell-inner .sortDesc { display: inline-block; position: absolute; bottom: 2px; right: -10px; }
@@ -60,7 +62,7 @@
             let checkedCheckboxes = [];
             document.querySelectorAll('.bread-table td.id input:checked').forEach(function(checkbox) {
                 //checkedCheckboxes.push(checkbox);
-
+                
                 document.querySelectorAll('.breadMassActionFormIdsContainer').forEach(function(div) {
                     div.appendChild(checkbox.cloneNode());
                 });
@@ -89,6 +91,9 @@
             return false;
         };
     </script>
+
+    {{-- @see https://github.com/aFarkas/lazysizes --}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.2.2/lazysizes.min.js" async></script> {{-- 3.3kb <img src="..." class="lazyload" /> --}}
 @endpush
 
 <table class="table bread-table">
@@ -150,7 +155,7 @@
 
     @if ($paginator->total())
     <tbody>
-    @foreach($paginator as $item)
+    @foreach($paginator as $index => $item)
         <?php
             /** @var $item \Illuminate\Database\Eloquent\Model */
             $id = $item->id;
@@ -225,9 +230,9 @@
                             <div class="d-flex bread-card-widget">
                                 <div class="position-relative">
                                     <a href="{{ $cardUrl }}" target="_blank">
-                                        <img src="{{ $cardThumbnail }}" alt="{{$match[1]}}" width="48" class="bread-thumbnail" />
+                                        <img data-src="{{ $cardThumbnail }}" loading="lazy" width="48" class="bread-thumbnail lazyload" alt="{{$match[1]}}" onload="console.log('load: {{ $index }}');" />
                                         @if ($cardPopupImage)
-                                        <img src="{{ $cardPopupImage }}" class="bread-thumbnail-popup" style="position: absolute; top: 0; left: 50px; max-width: 360px;" />
+                                        <img data-src="{{ $cardPopupImage }}" loading="lazy" class="bread-thumbnail-popup lazyload" style="position: absolute; top: 0; left: 50px; max-width: 360px;" />
                                         @endif
                                     </a>
                                 </div>
@@ -289,7 +294,7 @@
                 <div>
                     @if (!empty($actions))
                     <div class="d-inline-block bread-actions-custom">
-                        <div class="dropdown"> {{--float-md-right breadMassActionsWrap--}}
+                        <div class="dropdown breadDropdown"> {{--float-md-right breadMassActionsWrap--}}
                             <button class="btn btn-primary dropdown-toggle" id="breadCustomActionsToggler{{ $id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 ☘{{-- ⚙ --}}
                             </button>
@@ -297,13 +302,13 @@
                                 @if (is_array($actions))
                                     @foreach($actions as $action)
                                         <div class="dropdown-item">
-                                        @if (is_array($action))
-                                            <?php $url = is_callable(data_get($action, 'action')) ? $action['action']($item) : data_get($action, 'action'); ?>
-                                            {{--{!! app('bread')->renderBlade($action['template'], ['key' => $key, 'value' => $value, 'column' => $column, 'item' => $item]) !!}--}}
-                                            <a href="{{ $url }}" title="{{ data_get($action, 'title') }}" class="btn btn-sm btn-outline-primary">{{ data_get($action, 'name', 'Button') }}</a>
-                                        @elseif(is_string($action))
-                                            {!! app('bread')->renderBlade($action, ['id' => $id, 'item' => $item]) !!}
-                                        @endif
+                                            @if (is_array($action))
+                                                <?php $url = is_callable(data_get($action, 'action')) ? $action['action']($item) : data_get($action, 'action'); ?>
+                                                {{--{!! app('bread')->renderBlade($action['template'], ['key' => $key, 'value' => $value, 'column' => $column, 'item' => $item]) !!}--}}
+                                                <a href="{{ $url }}" title="{{ data_get($action, 'title') }}" class="btn btn-sm btn-outline-primary">{{ data_get($action, 'name', 'Button') }}</a>
+                                            @elseif(is_string($action))
+                                                {!! app('bread')->renderBlade($action, ['id' => $id, 'item' => $item]) !!}
+                                            @endif
                                         </div>
                                     @endforeach
                                 @endif
