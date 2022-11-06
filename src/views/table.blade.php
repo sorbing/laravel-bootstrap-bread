@@ -62,7 +62,7 @@
             let checkedCheckboxes = [];
             document.querySelectorAll('.bread-table td.id input:checked').forEach(function(checkbox) {
                 //checkedCheckboxes.push(checkbox);
-                
+
                 document.querySelectorAll('.breadMassActionFormIdsContainer').forEach(function(div) {
                     div.appendChild(checkbox.cloneNode());
                 });

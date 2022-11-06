@@ -178,6 +178,14 @@ trait BreadControllerTrait
         } elseif (mb_strrpos($value, '*')+1 === mb_strlen($value)) {
             $value = trim($value, '*');
             $query->where($column, 'LIKE', "$value%");
+        } else if (mb_strpos($value, '><')) {
+            $dates = explode('><', $value);
+            $query->where($column, '>', $dates[0]);
+            $query->where($column, '<', $dates[1]);
+        } else if (mb_strpos($value, '>=<')) {
+            $dates = explode('>=<', $value);
+            $query->where($column, '>=', $dates[0]);
+            $query->where($column, '<=', $dates[1]);
         } else if (preg_match('/^([!=<>]{1,2})(.+)$/', $value, $m)) {
             $operation = ($m[1] == '!') ? '!=' : $m[1];
             $value = $m[2];
