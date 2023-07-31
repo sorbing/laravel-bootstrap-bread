@@ -478,14 +478,22 @@ trait BreadControllerTrait
     /** Store a newly created resource in storage */
     public function store()
     {
+        $id = null;
+
         $data = request()->except(['id', 'created_at', 'updated_at', '_token', '_method', '_prev_index_url']);
 
-        $query = $this->breadQuery();
+        $model = $this->breadDetectModel();
 
-        if ($query instanceof \Illuminate\Database\Query\Builder) {
-            $id = $query->insertGetId($data);
-        } else if ($query instanceof \Illuminate\Database\Eloquent\Builder) {
-            $id = $query->create($data)->id; // @note For a eloquent events works
+        if ($model) {
+            $id = $model->fill($data)->save();
+        } else {
+            $query = $this->breadQuery();
+            if ($query instanceof \Illuminate\Database\Query\Builder) {
+                $id = $query->insertGetId($data);
+            } else if ($query instanceof \Illuminate\Database\Eloquent\Builder) {
+                // @todo Not works!
+                $id = $query->create($data)->id; // @note For an eloquent events works
+            }
         }
 
         $defaultUrl = url()->route($this->breadRouteNamePrefix().'.index');
